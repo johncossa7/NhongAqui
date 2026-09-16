@@ -24,7 +24,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import { CategoryCard, LocationDisplay, PriceDisplay, ProductGrid, ReviewStars, VerifiedBadge } from "./components/product";
 import { Button, Card, EmptyState, Input, Select, SkeletonCard, Textarea } from "./components/ui";
-import { apiRequest, normalizePage, toQuery } from "./lib/api";
+import { API_URL, apiRequest, normalizePage, toQuery } from "./lib/api";
 import { useAuth } from "./lib/auth";
 import { productImage } from "./lib/images";
 import { setSeo } from "./lib/seo";
@@ -289,7 +289,7 @@ export function ShopPage() {
           ) : products.isError ? (
             <EmptyState
               title="Nao foi possivel carregar produtos"
-              text="Confirme se o backend esta ligado em http://localhost:8000 e recarregue a pagina."
+              text={`Confirme se a API esta online e se o backend permite este dominio. API configurada: ${API_URL}`}
             />
           ) : products.data?.length ? (
             <ProductGrid products={products.data} />

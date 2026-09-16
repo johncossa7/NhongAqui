@@ -1175,7 +1175,7 @@ function ListingEditForm({
   product: Product;
   categories: Category[];
   onCancel: () => void;
-  onSaved: () => void;
+  onSaved: (product: Product) => void;
 }) {
   const [draft, setDraft] = useState<ListingDraft>({
     title: product.title,
@@ -1204,7 +1204,11 @@ function ListingEditForm({
       files.forEach((file) => data.append("uploaded_images", file));
       return apiRequest<Product>(`/products/${product.slug}/`, { method: "PATCH", body: data });
     },
-    onSuccess: onSaved
+    onSuccess: (updatedProduct) => {
+      setFiles([]);
+      setRemovedImageIds([]);
+      onSaved(updatedProduct);
+    }
   });
 
   useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
@@ -1301,6 +1305,11 @@ function ListingEditForm({
             </button>
           </div>
         ) : null}
+        {files.length ? (
+          <div className="mb-3 rounded-md border border-brand-100 bg-brand-50 px-3 py-2 text-sm font-bold text-brand-700">
+            {files.length} foto{files.length === 1 ? "" : "s"} nova{files.length === 1 ? "" : "s"} pronta{files.length === 1 ? "" : "s"} para guardar.
+          </div>
+        ) : null}
         <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
           {visibleImages.map((image) => (
             <div key={image.id} className="group relative overflow-hidden rounded-md bg-white">
@@ -1352,7 +1361,11 @@ function ListingEditForm({
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
         <Button type="button" disabled={save.isPending} onClick={() => void save.mutate()}>
-          {save.isPending ? "A guardar..." : "Guardar alteracoes"}
+          {save.isPending
+            ? "A guardar fotos..."
+            : files.length || removedImageIds.length
+              ? `Guardar alteracoes (${files.length} nova${files.length === 1 ? "" : "s"}, ${removedImageIds.length} remover)`
+              : "Guardar alteracoes"}
         </Button>
       </div>
     </Card>
@@ -1452,6 +1465,12 @@ export function MyListingsPage() {
       await queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
     }
   });
+  const updateProductCache = (updatedProduct: Product) => {
+    queryClient.setQueryData<Product[]>(["my-products"], (current) =>
+      (current ?? []).map((product) => (product.id === updatedProduct.id ? updatedProduct : product))
+    );
+    queryClient.setQueryData<Product>(["product", updatedProduct.slug], updatedProduct);
+  };
   return (
     <Shell>
       <div className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
@@ -1480,9 +1499,11 @@ export function MyListingsPage() {
               product={product}
               categories={categories.data ?? []}
               onCancel={() => setEditingId(null)}
-              onSaved={() => {
+              onSaved={(updatedProduct) => {
+                updateProductCache(updatedProduct);
                 setEditingId(null);
                 void queryClient.invalidateQueries({ queryKey: ["my-products"] });
+                void queryClient.invalidateQueries({ queryKey: ["product", updatedProduct.slug] });
                 void queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
               }}
             />

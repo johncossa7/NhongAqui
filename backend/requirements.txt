@@ -9,6 +9,7 @@ psycopg[binary]>=3.2,<4.0
 Pillow>=11.0,<13.0
 django-storages[azure]>=1.14,<2.0
 gunicorn>=23.0,<24.0
+whitenoise>=6.8,<7.0
 pytest>=8.3,<9.0
 pytest-django>=4.9,<5.0
 ruff>=0.8,<1.0

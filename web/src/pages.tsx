@@ -1120,8 +1120,175 @@ export function ProfilePage() {
   );
 }
 
+type ListingDraft = {
+  title: string;
+  description: string;
+  category: string;
+  price: string;
+  negotiable: boolean;
+  condition: string;
+  province: string;
+  city: string;
+  neighborhood: string;
+};
+
+function ListingEditForm({
+  product,
+  categories,
+  onCancel,
+  onSaved
+}: {
+  product: Product;
+  categories: Category[];
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [draft, setDraft] = useState<ListingDraft>({
+    title: product.title,
+    description: product.description,
+    category: String(product.category),
+    price: String(product.price),
+    negotiable: product.negotiable,
+    condition: product.condition,
+    province: product.province,
+    city: product.city,
+    neighborhood: product.neighborhood
+  });
+  const [files, setFiles] = useState<File[]>([]);
+  const previews = useMemo(
+    () => files.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    [files]
+  );
+  const availableSlots = Math.max(0, maxProductImages - product.images.length);
+  const save = useMutation({
+    mutationFn: () => {
+      const data = new FormData();
+      Object.entries(draft).forEach(([key, value]) => data.append(key, String(value)));
+      files.slice(0, availableSlots).forEach((file) => data.append("uploaded_images", file));
+      return apiRequest<Product>(`/products/${product.slug}/`, { method: "PATCH", body: data });
+    },
+    onSuccess: onSaved
+  });
+
+  useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
+
+  return (
+    <Card className="space-y-4 p-4 shadow-soft">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h2 className="text-xl font-black text-gray-950">Editar anuncio</h2>
+          <p className="mt-1 text-sm text-gray-500">Atualize preco, descricao, localizacao e acrescente fotografias.</p>
+        </div>
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          <X size={17} />
+          Fechar
+        </Button>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
+        <div>
+          <img
+            className="aspect-square w-full rounded-lg object-cover"
+            src={productImage(product)}
+            alt={product.title}
+            onError={(event) => {
+              event.currentTarget.src = fallbackImage(product.id);
+            }}
+          />
+          <p className="mt-2 text-xs font-bold text-gray-500">{product.images.length}/{maxProductImages} fotos guardadas</p>
+        </div>
+        <div className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+            <Input required placeholder="Titulo" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+            <Select required value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}>
+              {(categories.length ? categories : [product.category_detail].filter(Boolean) as Category[]).map((category) => (
+                <option key={category.id} value={category.id}>{category.name}</option>
+              ))}
+            </Select>
+          </div>
+          <Textarea required placeholder="Descricao" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input required inputMode="decimal" type="number" placeholder="Preco MT" value={draft.price} onChange={(event) => setDraft({ ...draft, price: event.target.value })} />
+            <Select value={draft.condition} onChange={(event) => setDraft({ ...draft, condition: event.target.value })}>
+              {Object.entries(conditionLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </Select>
+            <label className="flex min-h-11 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm font-bold text-gray-700">
+              <input type="checkbox" checked={draft.negotiable} onChange={(event) => setDraft({ ...draft, negotiable: event.target.checked })} />
+              Preco negociavel
+            </label>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <Input placeholder="Provincia" value={draft.province} onChange={(event) => setDraft({ ...draft, province: event.target.value })} />
+            <Input required placeholder="Cidade" value={draft.city} onChange={(event) => setDraft({ ...draft, city: event.target.value })} />
+            <Input placeholder="Bairro" value={draft.neighborhood} onChange={(event) => setDraft({ ...draft, neighborhood: event.target.value })} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <p className="font-black text-gray-950">Adicionar fotografias</p>
+            <p className="text-sm text-gray-500">Pode adicionar mais {availableSlots} foto{availableSlots === 1 ? "" : "s"}.</p>
+          </div>
+          <label className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-bold transition ${availableSlots ? "bg-gray-950 text-white hover:bg-brand-700" : "cursor-not-allowed bg-gray-200 text-gray-500"}`}>
+            <ImagePlus size={17} />
+            Escolher fotos
+            <input
+              className="sr-only"
+              type="file"
+              multiple
+              accept="image/*"
+              disabled={!availableSlots}
+              onChange={(event) => {
+                setFiles(Array.from(event.target.files ?? []).slice(0, availableSlots));
+                event.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
+          {product.images.map((image) => (
+            <img
+              key={image.id}
+              className="aspect-square rounded-md object-cover"
+              src={image.image}
+              alt={product.title}
+              onError={(event) => {
+                event.currentTarget.src = fallbackImage(product.id);
+              }}
+            />
+          ))}
+          {previews.map((preview) => (
+            <div key={`${preview.file.name}-${preview.file.lastModified}`} className="relative">
+              <img className="aspect-square rounded-md object-cover" src={preview.url} alt={preview.file.name} />
+              <span className="absolute left-1 top-1 rounded bg-brand-700 px-1.5 py-0.5 text-[10px] font-black text-white">Nova</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {save.error instanceof Error ? (
+        <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" role="alert">
+          <AlertCircle className="mt-0.5 shrink-0" size={17} />
+          <span>{save.error.message}</span>
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <Button type="button" variant="secondary" onClick={onCancel}>Cancelar</Button>
+        <Button type="button" disabled={save.isPending} onClick={() => void save.mutate()}>
+          {save.isPending ? "A guardar..." : "Guardar alteracoes"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export function MyListingsPage() {
   const queryClient = useQueryClient();
+  const categories = useCategories();
+  const [editingId, setEditingId] = useState<number | null>(null);
   const products = useQuery({
     queryKey: ["my-products"],
     queryFn: async () => normalizePage(await apiRequest<Paginated<Product>>("/products/mine/"))
@@ -1132,29 +1299,65 @@ export function MyListingsPage() {
   });
   return (
     <Shell>
-      <h1 className="mb-5 text-2xl font-bold">Meus anuncios</h1>
-      <div className="grid gap-3">
+      <div className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Vendedor</p>
+          <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Meus anuncios</h1>
+          <p className="mt-1 text-sm text-gray-600">Veja, edite e acompanhe os produtos que colocou a venda.</p>
+        </div>
+        <Link to="/vender">
+          <Button>
+            <Camera size={18} />
+            Novo anuncio
+          </Button>
+        </Link>
+      </div>
+      <div className="grid gap-4">
+        {products.isLoading ? <p className="text-sm text-gray-500">A carregar os seus anuncios...</p> : null}
         {(products.data ?? []).map((product) => (
-          <Card key={product.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
-            <img
-              className="h-28 w-full rounded-md object-cover md:w-36"
-              src={productImage(product)}
-              alt={product.title}
-              onError={(event) => {
-                event.currentTarget.src = fallbackImage(product.id);
+          editingId === product.id ? (
+            <ListingEditForm
+              key={product.id}
+              product={product}
+              categories={categories.data ?? []}
+              onCancel={() => setEditingId(null)}
+              onSaved={() => {
+                setEditingId(null);
+                void queryClient.invalidateQueries({ queryKey: ["my-products"] });
               }}
             />
-            <div className="flex-1">
-              <Link to={`/produto/${product.slug}`} className="font-semibold">{product.title}</Link>
-              <p className="text-sm text-gray-500">{product.status}</p>
-              <PriceDisplay value={product.price} />
-            </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => void action.mutate({ slug: product.slug, next: "mark_reserved" })}>Reservar</Button>
-              <Button onClick={() => void action.mutate({ slug: product.slug, next: "mark_sold" })}>Vendido</Button>
-            </div>
-          </Card>
+          ) : (
+            <Card key={product.id} className="grid gap-3 p-4 shadow-soft md:grid-cols-[160px_1fr_auto] md:items-center">
+              <img
+                className="h-32 w-full rounded-md object-cover md:h-28"
+                src={productImage(product)}
+                alt={product.title}
+                onError={(event) => {
+                  event.currentTarget.src = fallbackImage(product.id);
+                }}
+              />
+              <div>
+                <Link to={`/produto/${product.slug}`} className="text-lg font-black text-gray-950 hover:text-brand-700">{product.title}</Link>
+                <div className="mt-1 flex flex-wrap gap-2 text-sm text-gray-500">
+                  <span>{product.status}</span>
+                  <span>{product.images.length} foto{product.images.length === 1 ? "" : "s"}</span>
+                  <span>{product.city}</span>
+                </div>
+                <p className="mt-2 text-xl"><PriceDisplay value={product.price} /></p>
+              </div>
+              <div className="flex flex-wrap gap-2 md:justify-end">
+                <Button variant="secondary" onClick={() => setEditingId(product.id)}>
+                  Editar
+                </Button>
+                <Button variant="secondary" onClick={() => void action.mutate({ slug: product.slug, next: "mark_reserved" })}>Reservar</Button>
+                <Button onClick={() => void action.mutate({ slug: product.slug, next: "mark_sold" })}>Vendido</Button>
+              </div>
+            </Card>
+          )
         ))}
+        {!products.isLoading && !products.data?.length ? (
+          <EmptyState title="Ainda nao tem anuncios" text="Publique o primeiro produto para comecar a vender." />
+        ) : null}
       </div>
     </Shell>
   );

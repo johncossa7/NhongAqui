@@ -88,7 +88,24 @@ class ProductSerializer(serializers.ModelSerializer):
     def validate_uploaded_images(self, value):
         if len(value) > settings.MAX_PRODUCT_IMAGES:
             raise serializers.ValidationError(f"Maximo de {settings.MAX_PRODUCT_IMAGES} imagens.")
+        if self.instance and self.instance.images.count() + len(value) > settings.MAX_PRODUCT_IMAGES:
+            available = settings.MAX_PRODUCT_IMAGES - self.instance.images.count()
+            raise serializers.ValidationError(f"Pode adicionar mais {max(available, 0)} imagens.")
         return value
+
+    def _save_images(self, product, uploaded_images, start_position=0):
+        moderation = MockImageModerationService()
+        for offset, image in enumerate(uploaded_images[: settings.MAX_PRODUCT_IMAGES]):
+            result = moderation.moderate(image)
+            position = start_position + offset
+            ProductImage.objects.create(
+                product=product,
+                image=image,
+                position=position,
+                is_primary=position == 0 and not product.images.exists(),
+                moderation_status=result.status,
+                moderation_reason=result.reason,
+            )
 
     @transaction.atomic
     def create(self, validated_data):
@@ -97,18 +114,24 @@ class ProductSerializer(serializers.ModelSerializer):
         if request:
             uploaded_images = uploaded_images or request.FILES.getlist("uploaded_images")
         product = Product.objects.create(**validated_data)
-        moderation = MockImageModerationService()
-        for position, image in enumerate(uploaded_images[: settings.MAX_PRODUCT_IMAGES]):
-            result = moderation.moderate(image)
-            ProductImage.objects.create(
-                product=product,
-                image=image,
-                position=position,
-                is_primary=position == 0,
-                moderation_status=result.status,
-                moderation_reason=result.reason,
-            )
+        self._save_images(product, uploaded_images)
         return product
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        uploaded_images = validated_data.pop("uploaded_images", [])
+        request = self.context.get("request")
+        if request:
+            uploaded_images = uploaded_images or request.FILES.getlist("uploaded_images")
+        if instance.images.count() + len(uploaded_images) > settings.MAX_PRODUCT_IMAGES:
+            available = settings.MAX_PRODUCT_IMAGES - instance.images.count()
+            raise serializers.ValidationError({"uploaded_images": f"Pode adicionar mais {max(available, 0)} imagens."})
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        instance.save()
+        next_position = instance.images.count()
+        self._save_images(instance, uploaded_images, start_position=next_position)
+        return instance
 
 
 class ProductSummarySerializer(serializers.ModelSerializer):

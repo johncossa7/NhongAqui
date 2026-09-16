@@ -1,10 +1,11 @@
 import pytest
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
 from accounts.models import SellerProfile
 from categories.models import Category
-from products.models import Product
+from products.models import Product, ProductImage
 
 User = get_user_model()
 
@@ -73,6 +74,39 @@ def test_only_owner_can_edit_product(category, seller, other_user):
     allowed = client.patch(f"/api/v1/products/{product.slug}/", {"title": "Galaxy Atualizado"}, format="json")
     assert allowed.status_code == 200
     assert allowed.data["title"] == "Galaxy Atualizado"
+
+
+@pytest.mark.django_db
+def test_owner_can_update_price_and_add_images(category, seller):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Tenis usados",
+        description="Tenis em bom estado.",
+        price="2500.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    image = SimpleUploadedFile(
+        "tenis.gif",
+        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
+        content_type="image/gif",
+    )
+    client = APIClient()
+    client.force_authenticate(seller)
+
+    response = client.patch(
+        f"/api/v1/products/{product.slug}/",
+        {"price": "3000.00", "uploaded_images": [image]},
+        format="multipart",
+    )
+
+    assert response.status_code == 200
+    product.refresh_from_db()
+    assert str(product.price) == "3000.00"
+    assert ProductImage.objects.filter(product=product).count() == 1
 
 
 @pytest.mark.django_db

@@ -1136,12 +1136,14 @@ function ListingEditForm({
   product,
   categories,
   onCancel,
-  onSaved
+  onSaved,
+  onChanged
 }: {
   product: Product;
   categories: Category[];
   onCancel: () => void;
   onSaved: () => void;
+  onChanged: () => void;
 }) {
   const [draft, setDraft] = useState<ListingDraft>({
     title: product.title,
@@ -1168,6 +1170,12 @@ function ListingEditForm({
       return apiRequest<Product>(`/products/${product.slug}/`, { method: "PATCH", body: data });
     },
     onSuccess: onSaved
+  });
+  const removeImage = useMutation({
+    mutationFn: (imageId: number) => apiRequest<Product>(`/products/${product.slug}/images/${imageId}/`, { method: "DELETE" }),
+    onSuccess: () => {
+      onChanged();
+    }
   });
 
   useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
@@ -1249,15 +1257,32 @@ function ListingEditForm({
         </div>
         <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
           {product.images.map((image) => (
-            <img
-              key={image.id}
-              className="aspect-square rounded-md object-cover"
-              src={image.image}
-              alt={product.title}
-              onError={(event) => {
-                event.currentTarget.src = fallbackImage(product.id);
-              }}
-            />
+            <div key={image.id} className="group relative overflow-hidden rounded-md bg-white">
+              <img
+                className="aspect-square w-full object-cover"
+                src={image.image}
+                alt={product.title}
+                onError={(event) => {
+                  event.currentTarget.src = fallbackImage(product.id);
+                }}
+              />
+              {image.is_primary ? (
+                <span className="absolute left-1 top-1 rounded bg-gray-950 px-1.5 py-0.5 text-[10px] font-black text-white">Capa</span>
+              ) : null}
+              <button
+                className="absolute bottom-1 right-1 inline-flex min-h-8 items-center gap-1 rounded-md bg-red-600 px-2 text-xs font-black text-white shadow-soft transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                disabled={removeImage.isPending}
+                onClick={() => {
+                  if (window.confirm("Remover esta fotografia do anuncio?")) {
+                    void removeImage.mutate(image.id);
+                  }
+                }}
+              >
+                <Trash2 size={14} />
+                Remover
+              </button>
+            </div>
           ))}
           {previews.map((preview) => (
             <div key={`${preview.file.name}-${preview.file.lastModified}`} className="relative">
@@ -1268,10 +1293,10 @@ function ListingEditForm({
         </div>
       </div>
 
-      {save.error instanceof Error ? (
+      {save.error instanceof Error || removeImage.error instanceof Error ? (
         <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" role="alert">
           <AlertCircle className="mt-0.5 shrink-0" size={17} />
-          <span>{save.error.message}</span>
+          <span>{save.error instanceof Error ? save.error.message : removeImage.error instanceof Error ? removeImage.error.message : ""}</span>
         </div>
       ) : null}
 
@@ -1408,6 +1433,10 @@ export function MyListingsPage() {
               onCancel={() => setEditingId(null)}
               onSaved={() => {
                 setEditingId(null);
+                void queryClient.invalidateQueries({ queryKey: ["my-products"] });
+                void queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
+              }}
+              onChanged={() => {
                 void queryClient.invalidateQueries({ queryKey: ["my-products"] });
                 void queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
               }}

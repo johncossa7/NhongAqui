@@ -1,7 +1,7 @@
 from django.db.models import F
 from django.utils import timezone
 from django_filters.rest_framework import FilterSet, NumberFilter
-from rest_framework import parsers, permissions, viewsets
+from rest_framework import parsers, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -45,11 +45,24 @@ class ProductViewSet(viewsets.ModelViewSet):
         )
         if self.request.user.is_staff:
             return queryset
-        if self.action in ["update", "partial_update", "destroy"]:
+        if self.action in ["update", "partial_update", "destroy", "delete_image"]:
             return queryset.filter(seller=self.request.user)
         if self.request.query_params.get("mine") == "true" and self.request.user.is_authenticated:
             return queryset.filter(seller=self.request.user)
         return queryset.filter(status__in=[Product.Status.ACTIVE, Product.Status.RESERVED, Product.Status.SOLD])
+
+    def _normalize_images(self, product):
+        for position, image in enumerate(product.images.order_by("position", "id")):
+            update_fields = []
+            if image.position != position:
+                image.position = position
+                update_fields.append("position")
+            should_be_primary = position == 0
+            if image.is_primary != should_be_primary:
+                image.is_primary = should_be_primary
+                update_fields.append("is_primary")
+            if update_fields:
+                image.save(update_fields=update_fields)
 
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user, status=Product.Status.ACTIVE, published_at=timezone.now())
@@ -79,6 +92,18 @@ class ProductViewSet(viewsets.ModelViewSet):
         product.status = Product.Status.SOLD
         product.sold_at = timezone.now()
         product.save(update_fields=["status", "sold_at", "updated_at"])
+        return Response(self.get_serializer(product).data)
+
+    @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>[^/.]+)")
+    def delete_image(self, request, slug=None, image_id=None):
+        product = self.get_object()
+        image = product.images.filter(pk=image_id).first()
+        if not image:
+            return Response({"detail": "Imagem nao encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        image.image.delete(save=False)
+        image.delete()
+        self._normalize_images(product)
+        product.refresh_from_db()
         return Response(self.get_serializer(product).data)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.AllowAny])

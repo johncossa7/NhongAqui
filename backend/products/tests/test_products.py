@@ -110,6 +110,69 @@ def test_owner_can_update_price_and_add_images(category, seller):
 
 
 @pytest.mark.django_db
+def test_owner_can_delete_product_image(category, seller):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Camera usada",
+        description="Camera em bom estado.",
+        price="5000.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    image = ProductImage.objects.create(
+        product=product,
+        image=SimpleUploadedFile(
+            "camera.gif",
+            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
+            content_type="image/gif",
+        ),
+        is_primary=True,
+    )
+    client = APIClient()
+    client.force_authenticate(seller)
+
+    response = client.delete(f"/api/v1/products/{product.slug}/images/{image.id}/")
+
+    assert response.status_code == 200
+    assert ProductImage.objects.filter(pk=image.id).exists() is False
+    assert response.data["images"] == []
+
+
+@pytest.mark.django_db
+def test_user_cannot_delete_other_seller_image(category, seller, other_user):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Mesa usada",
+        description="Mesa em madeira.",
+        price="1500.00",
+        condition=Product.Condition.USED,
+        province="Maputo",
+        city="Matola",
+        status=Product.Status.ACTIVE,
+    )
+    image = ProductImage.objects.create(
+        product=product,
+        image=SimpleUploadedFile(
+            "mesa.gif",
+            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
+            content_type="image/gif",
+        ),
+        is_primary=True,
+    )
+    client = APIClient()
+    client.force_authenticate(other_user)
+
+    response = client.delete(f"/api/v1/products/{product.slug}/images/{image.id}/")
+
+    assert response.status_code == 404
+    assert ProductImage.objects.filter(pk=image.id).exists()
+
+
+@pytest.mark.django_db
 def test_admin_can_delete_any_product(category, seller):
     admin = User.objects.create_superuser(email="admin@example.com", password="Password123!")
     product = Product.objects.create(

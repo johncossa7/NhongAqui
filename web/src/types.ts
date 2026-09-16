@@ -26,6 +26,9 @@ export type User = {
   neighborhood: string;
   account_type: string;
   verification_status: string;
+  is_staff?: boolean;
+  is_superuser?: boolean;
+  is_active?: boolean;
   avatar?: string | null;
   seller_profile?: SellerProfile;
 };

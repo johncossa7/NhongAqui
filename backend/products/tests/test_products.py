@@ -73,3 +73,27 @@ def test_only_owner_can_edit_product(category, seller, other_user):
     allowed = client.patch(f"/api/v1/products/{product.slug}/", {"title": "Galaxy Atualizado"}, format="json")
     assert allowed.status_code == 200
     assert allowed.data["title"] == "Galaxy Atualizado"
+
+
+@pytest.mark.django_db
+def test_admin_can_delete_any_product(category, seller):
+    admin = User.objects.create_superuser(email="admin@example.com", password="Password123!")
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto denunciado",
+        description="Produto a remover.",
+        price="1000.00",
+        condition=Product.Condition.USED,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    client = APIClient()
+    client.force_authenticate(admin)
+
+    response = client.delete(f"/api/v1/products/{product.slug}/")
+
+    assert response.status_code == 204
+    product.refresh_from_db()
+    assert product.status == Product.Status.DELETED

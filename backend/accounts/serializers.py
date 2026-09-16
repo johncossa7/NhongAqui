@@ -51,11 +51,14 @@ class UserSerializer(PublicUserSerializer):
         fields = PublicUserSerializer.Meta.fields + [
             "email",
             "phone",
+            "is_staff",
+            "is_superuser",
+            "is_active",
             "date_joined",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["email", "date_joined", "created_at", "updated_at"]
+        read_only_fields = ["email", "is_staff", "is_superuser", "is_active", "date_joined", "created_at", "updated_at"]
 
 
 class RegisterSerializer(serializers.ModelSerializer):

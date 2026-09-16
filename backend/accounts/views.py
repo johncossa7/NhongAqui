@@ -31,7 +31,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
-class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     queryset = User.objects.filter(is_active=True).select_related("seller_profile")
     serializer_class = PublicUserSerializer
     permission_classes = [permissions.AllowAny]
@@ -46,11 +46,21 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     def get_permissions(self):
         if self.action == "me":
             return [permissions.IsAuthenticated()]
+        if self.action == "destroy":
+            return [permissions.IsAdminUser()]
         return super().get_permissions()
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def me(self, request):
         return Response(UserSerializer(request.user, context={"request": request}).data)
+
+    def destroy(self, request, *args, **kwargs):
+        user = self.get_object()
+        if user.pk == request.user.pk:
+            return Response({"detail": "Nao pode desativar a propria conta."}, status=status.HTTP_400_BAD_REQUEST)
+        user.is_active = False
+        user.save(update_fields=["is_active", "updated_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class LogoutView(APIView):

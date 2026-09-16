@@ -10,14 +10,18 @@ import {
   ImagePlus,
   MapPin,
   MessageCircle,
+  Package,
   Search,
   ShieldCheck,
   Share2,
   Sparkles,
+  Trash2,
   Upload,
+  Users,
   UserRound,
   X
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -834,6 +838,160 @@ export function FavoritesPage() {
             </div>
           </Card>
         ))}
+      </div>
+    </Shell>
+  );
+}
+
+export function AdminPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const products = useQuery({
+    queryKey: ["admin-products"],
+    enabled: Boolean(user?.is_staff),
+    queryFn: async () => normalizePage(await apiRequest<Paginated<Product>>("/products/?page_size=48&ordering=-created_at"))
+  });
+  const users = useQuery({
+    queryKey: ["admin-users"],
+    enabled: Boolean(user?.is_staff),
+    queryFn: async () => normalizePage(await apiRequest<Paginated<User>>("/users/?page_size=48"))
+  });
+  const deleteProduct = useMutation({
+    mutationFn: (slug: string) => apiRequest(`/products/${slug}/`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    }
+  });
+  const deactivateUser = useMutation({
+    mutationFn: (id: number) => apiRequest(`/users/${id}/`, { method: "DELETE" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    }
+  });
+  const activeProducts = products.data?.filter((product) => product.status === "active").length ?? 0;
+  const featuredProducts = products.data?.filter((product) => product.featured).length ?? 0;
+  const stats: { label: string; value: number; icon: LucideIcon }[] = [
+    { label: "Anuncios ativos", value: activeProducts, icon: Package },
+    { label: "Anuncios destacados", value: featuredProducts, icon: Sparkles },
+    { label: "Contas visiveis", value: users.data?.length ?? 0, icon: Users }
+  ];
+
+  useEffect(() => setSeo("Admin", "Painel de administracao do NhongAqui."), []);
+
+  if (!user?.is_staff) {
+    return (
+      <Shell narrow>
+        <Card className="p-6 text-center shadow-soft">
+          <ShieldCheck className="mx-auto text-gray-400" size={34} />
+          <h1 className="mt-3 text-2xl font-black text-gray-950">Acesso reservado</h1>
+          <p className="mt-2 text-sm text-gray-600">Entre com uma conta admin para gerir anuncios, contas e moderacao.</p>
+          <Link to="/login" className="mt-5 inline-flex">
+            <Button>Entrar como admin</Button>
+          </Link>
+        </Card>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell>
+      <div className="mb-6 rounded-xl bg-white p-5 shadow-soft">
+        <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Administracao</p>
+        <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Painel Admin</h1>
+        <p className="mt-1 text-sm text-gray-600">Gerir anuncios, contas e atividade da plataforma.</p>
+      </div>
+
+      <div className="mb-6 grid gap-3 md:grid-cols-3">
+        {stats.map(({ label, value, icon: Icon }) => (
+          <Card key={label} className="flex items-center gap-3 p-4 shadow-soft">
+            <span className="flex size-11 items-center justify-center rounded-md bg-gray-950 text-white">
+              <Icon size={20} />
+            </span>
+            <span>
+              <span className="block text-2xl font-black text-gray-950">{value}</span>
+              <span className="text-sm font-bold text-gray-500">{label}</span>
+            </span>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+        <Card className="overflow-hidden shadow-soft">
+          <div className="flex items-center justify-between border-b border-gray-200 p-4">
+            <h2 className="text-xl font-black text-gray-950">Anuncios</h2>
+            <span className="text-sm font-bold text-gray-500">{products.data?.length ?? 0} nesta pagina</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {products.isLoading ? (
+              <p className="p-4 text-sm text-gray-500">A carregar anuncios...</p>
+            ) : products.data?.length ? (
+              products.data.map((product) => (
+                <div key={product.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center">
+                  <div>
+                    <Link to={`/produto/${product.slug}`} className="font-black text-gray-950 hover:text-brand-700">{product.title}</Link>
+                    <div className="mt-1 flex flex-wrap gap-2 text-sm text-gray-500">
+                      <span>{Number(product.price).toLocaleString("pt-MZ")} MT</span>
+                      <span>{product.city}</span>
+                      <span className="font-bold text-gray-700">{product.status}</span>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    disabled={deleteProduct.isPending}
+                    onClick={() => {
+                      if (window.confirm(`Apagar o anuncio "${product.title}"?`)) {
+                        void deleteProduct.mutate(product.slug);
+                      }
+                    }}
+                  >
+                    <Trash2 size={17} />
+                    Apagar
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="p-4 text-sm text-gray-500">Sem anuncios para mostrar.</p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden shadow-soft">
+          <div className="flex items-center justify-between border-b border-gray-200 p-4">
+            <h2 className="text-xl font-black text-gray-950">Contas</h2>
+            <span className="text-sm font-bold text-gray-500">{users.data?.length ?? 0} nesta pagina</span>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {users.isLoading ? (
+              <p className="p-4 text-sm text-gray-500">A carregar contas...</p>
+            ) : users.data?.length ? (
+              users.data.map((account) => (
+                <div key={account.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center">
+                  <div>
+                    <p className="font-black text-gray-950">{account.full_name}</p>
+                    <p className="text-sm text-gray-500">{account.email ?? "Sem email visivel"}</p>
+                    <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-700">{account.is_staff ? "Admin" : account.account_type}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    disabled={deactivateUser.isPending || account.id === user.id}
+                    onClick={() => {
+                      if (window.confirm(`Desativar a conta "${account.full_name}"?`)) {
+                        void deactivateUser.mutate(account.id);
+                      }
+                    }}
+                  >
+                    <Trash2 size={17} />
+                    Desativar
+                  </Button>
+                </div>
+              ))
+            ) : (
+              <p className="p-4 text-sm text-gray-500">Sem contas para mostrar.</p>
+            )}
+          </div>
+        </Card>
       </div>
     </Shell>
   );

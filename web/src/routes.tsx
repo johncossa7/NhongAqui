@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { AppLayout } from "./components/layout";
 import { getTokens } from "./lib/api";
 import {
+  AdminPage,
   FavoritesPage,
   ForgotPasswordPage,
   HomePage,
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
       { path: "/favoritos", element: <RequireAuth><FavoritesPage /></RequireAuth> },
       { path: "/mensagens", element: <RequireAuth><MessagesPage /></RequireAuth> },
       { path: "/perfil", element: <RequireAuth><ProfilePage /></RequireAuth> },
+      { path: "/admin", element: <RequireAuth><AdminPage /></RequireAuth> },
       { path: "/editar-perfil", element: <RequireAuth><ProfilePage /></RequireAuth> },
       { path: "/meus-anuncios", element: <RequireAuth><MyListingsPage /></RequireAuth> },
       { path: "/vendedor/:id", element: <SellerPage /> },

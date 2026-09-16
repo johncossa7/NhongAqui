@@ -39,5 +39,14 @@ if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 elif settings.SERVE_MEDIA_FILES:
     urlpatterns += [
-        re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
+        re_path(
+            r"^media/products/(?P<path>.*)$",
+            serve,
+            {"document_root": settings.MEDIA_ROOT / "products"},
+        ),
+        re_path(
+            r"^media/accounts/avatars/(?P<path>.*)$",
+            serve,
+            {"document_root": settings.MEDIA_ROOT / "accounts" / "avatars"},
+        ),
     ]

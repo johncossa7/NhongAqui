@@ -10,6 +10,14 @@ from common.moderation import MockImageModerationService
 from .models import Product, ProductImage
 
 
+def absolute_file_url(request, url: str) -> str:
+    if not request or url.startswith(("http://", "https://")):
+        return url
+    if not url.startswith("/"):
+        url = f"/{url}"
+    return request.build_absolute_uri(url)
+
+
 class ProductImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
 
@@ -29,7 +37,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
     def get_image(self, obj):
         request = self.context.get("request")
         url = obj.image.url
-        return request.build_absolute_uri(url) if request else url
+        return absolute_file_url(request, url)
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -226,4 +234,4 @@ class ProductSummarySerializer(serializers.ModelSerializer):
             return None
         request = self.context.get("request")
         url = image.image.url
-        return request.build_absolute_uri(url) if request else url
+        return absolute_file_url(request, url)

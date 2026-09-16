@@ -103,10 +103,57 @@ def test_owner_can_update_price_and_add_images(category, seller):
         format="multipart",
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.data
     product.refresh_from_db()
     assert str(product.price) == "3000.00"
     assert ProductImage.objects.filter(product=product).count() == 1
+
+
+@pytest.mark.django_db
+def test_owner_can_remove_and_add_images_in_same_update(category, seller):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Sapatilhas",
+        description="Sapatilhas novas.",
+        price="3500.00",
+        condition=Product.Condition.NEW,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    images = [
+        ProductImage.objects.create(
+            product=product,
+            image=SimpleUploadedFile(
+                f"sapatilha-{index}.gif",
+                b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
+                content_type="image/gif",
+            ),
+            position=index,
+            is_primary=index == 0,
+        )
+        for index in range(8)
+    ]
+    new_image = SimpleUploadedFile(
+        "sapatilha-nova.gif",
+        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
+        content_type="image/gif",
+    )
+    client = APIClient()
+    client.force_authenticate(seller)
+
+    response = client.patch(
+        f"/api/v1/products/{product.slug}/",
+        {"delete_image_ids": [images[0].id], "uploaded_images": [new_image]},
+        format="multipart",
+    )
+
+    assert response.status_code == 200, response.data
+    product.refresh_from_db()
+    assert ProductImage.objects.filter(product=product).count() == 8
+    assert ProductImage.objects.filter(pk=images[0].id).exists() is False
+    assert product.images.order_by("position", "id").first().is_primary is True
 
 
 @pytest.mark.django_db

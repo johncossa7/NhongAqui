@@ -30,6 +30,11 @@ class ProductSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.filter(is_active=True))
     category_detail = CategorySerializer(source="category", read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    delete_image_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False,
+    )
     uploaded_images = serializers.ListField(
         child=serializers.ImageField(),
         write_only=True,
@@ -58,6 +63,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "featured",
             "views_count",
             "images",
+            "delete_image_ids",
             "uploaded_images",
             "is_favorited",
             "created_at",
@@ -89,9 +95,47 @@ class ProductSerializer(serializers.ModelSerializer):
         if len(value) > settings.MAX_PRODUCT_IMAGES:
             raise serializers.ValidationError(f"Maximo de {settings.MAX_PRODUCT_IMAGES} imagens.")
         if self.instance and self.instance.images.count() + len(value) > settings.MAX_PRODUCT_IMAGES:
-            available = settings.MAX_PRODUCT_IMAGES - self.instance.images.count()
+            delete_ids = self._delete_image_ids()
+            delete_count = self.instance.images.filter(id__in=delete_ids).count()
+            available = settings.MAX_PRODUCT_IMAGES - (self.instance.images.count() - delete_count)
+            if len(value) <= available:
+                return value
             raise serializers.ValidationError(f"Pode adicionar mais {max(available, 0)} imagens.")
         return value
+
+    def _delete_image_ids(self):
+        data = getattr(self, "initial_data", {}) or {}
+        raw_values = []
+
+        def add_values(value):
+            if isinstance(value, (list, tuple)):
+                raw_values.extend(value)
+            else:
+                raw_values.append(value)
+
+        if hasattr(data, "getlist"):
+            raw_values.extend(data.getlist("delete_image_ids"))
+            raw_values.extend(data.getlist("delete_image_ids[]"))
+            if hasattr(data, "lists"):
+                for key, values in data.lists():
+                    if key.startswith("delete_image_ids["):
+                        raw_values.extend(values)
+        else:
+            value = data.get("delete_image_ids", [])
+            add_values(value)
+            for key, value in data.items():
+                if key.startswith("delete_image_ids["):
+                    add_values(value)
+
+        image_ids = []
+        for value in raw_values:
+            if value in ("", None):
+                continue
+            try:
+                image_ids.append(int(value))
+            except (TypeError, ValueError):
+                raise serializers.ValidationError({"delete_image_ids": "Imagem invalida."})
+        return image_ids
 
     def _save_images(self, product, uploaded_images, start_position=0):
         moderation = MockImageModerationService()
@@ -107,6 +151,23 @@ class ProductSerializer(serializers.ModelSerializer):
                 moderation_reason=result.reason,
             )
 
+    def _normalize_images(self, product):
+        for position, image in enumerate(product.images.order_by("position", "id")):
+            update_fields = []
+            if image.position != position:
+                image.position = position
+                update_fields.append("position")
+            should_be_primary = position == 0
+            if image.is_primary != should_be_primary:
+                image.is_primary = should_be_primary
+                update_fields.append("is_primary")
+            if update_fields:
+                image.save(update_fields=update_fields)
+
+    def _clear_images_cache(self, product):
+        if hasattr(product, "_prefetched_objects_cache"):
+            product._prefetched_objects_cache.pop("images", None)
+
     @transaction.atomic
     def create(self, validated_data):
         uploaded_images = validated_data.pop("uploaded_images", [])
@@ -120,9 +181,17 @@ class ProductSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         uploaded_images = validated_data.pop("uploaded_images", [])
+        delete_image_ids = validated_data.pop("delete_image_ids", None)
         request = self.context.get("request")
         if request:
             uploaded_images = uploaded_images or request.FILES.getlist("uploaded_images")
+        delete_image_ids = delete_image_ids or self._delete_image_ids()
+        if delete_image_ids:
+            images_to_delete = instance.images.filter(id__in=delete_image_ids)
+            for image in images_to_delete:
+                image.image.delete(save=False)
+            images_to_delete.delete()
+            self._clear_images_cache(instance)
         if instance.images.count() + len(uploaded_images) > settings.MAX_PRODUCT_IMAGES:
             available = settings.MAX_PRODUCT_IMAGES - instance.images.count()
             raise serializers.ValidationError({"uploaded_images": f"Pode adicionar mais {max(available, 0)} imagens."})
@@ -131,6 +200,9 @@ class ProductSerializer(serializers.ModelSerializer):
         instance.save()
         next_position = instance.images.count()
         self._save_images(instance, uploaded_images, start_position=next_position)
+        self._clear_images_cache(instance)
+        self._normalize_images(instance)
+        self._clear_images_cache(instance)
         return instance
 
 

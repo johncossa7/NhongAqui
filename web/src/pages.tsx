@@ -1136,14 +1136,12 @@ function ListingEditForm({
   product,
   categories,
   onCancel,
-  onSaved,
-  onChanged
+  onSaved
 }: {
   product: Product;
   categories: Category[];
   onCancel: () => void;
   onSaved: () => void;
-  onChanged: () => void;
 }) {
   const [draft, setDraft] = useState<ListingDraft>({
     title: product.title,
@@ -1157,25 +1155,22 @@ function ListingEditForm({
     neighborhood: product.neighborhood
   });
   const [files, setFiles] = useState<File[]>([]);
+  const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
   const previews = useMemo(
     () => files.map((file) => ({ file, url: URL.createObjectURL(file) })),
     [files]
   );
-  const availableSlots = Math.max(0, maxProductImages - product.images.length);
+  const visibleImages = product.images.filter((image) => !removedImageIds.includes(image.id));
+  const availableSlots = Math.max(0, maxProductImages - visibleImages.length - files.length);
   const save = useMutation({
     mutationFn: () => {
       const data = new FormData();
       Object.entries(draft).forEach(([key, value]) => data.append(key, String(value)));
-      files.slice(0, availableSlots).forEach((file) => data.append("uploaded_images", file));
+      removedImageIds.forEach((imageId) => data.append("delete_image_ids", String(imageId)));
+      files.forEach((file) => data.append("uploaded_images", file));
       return apiRequest<Product>(`/products/${product.slug}/`, { method: "PATCH", body: data });
     },
     onSuccess: onSaved
-  });
-  const removeImage = useMutation({
-    mutationFn: (imageId: number) => apiRequest<Product>(`/products/${product.slug}/images/${imageId}/`, { method: "DELETE" }),
-    onSuccess: () => {
-      onChanged();
-    }
   });
 
   useEffect(() => () => previews.forEach((preview) => URL.revokeObjectURL(preview.url)), [previews]);
@@ -1203,7 +1198,7 @@ function ListingEditForm({
               event.currentTarget.src = fallbackImage(product.id);
             }}
           />
-          <p className="mt-2 text-xs font-bold text-gray-500">{product.images.length}/{maxProductImages} fotos guardadas</p>
+          <p className="mt-2 text-xs font-bold text-gray-500">{visibleImages.length + files.length}/{maxProductImages} fotos apos guardar</p>
         </div>
         <div className="space-y-3">
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
@@ -1236,12 +1231,14 @@ function ListingEditForm({
       <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <p className="font-black text-gray-950">Adicionar fotografias</p>
-            <p className="text-sm text-gray-500">Pode adicionar mais {availableSlots} foto{availableSlots === 1 ? "" : "s"}.</p>
+            <p className="font-black text-gray-950">Fotografias do anuncio</p>
+            <p className="text-sm text-gray-500">
+              Remova antigas ou adicione novas. Pode adicionar mais {availableSlots} foto{availableSlots === 1 ? "" : "s"}.
+            </p>
           </div>
           <label className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-bold transition ${availableSlots ? "bg-gray-950 text-white hover:bg-brand-700" : "cursor-not-allowed bg-gray-200 text-gray-500"}`}>
             <ImagePlus size={17} />
-            Escolher fotos
+            Adicionar fotos
             <input
               className="sr-only"
               type="file"
@@ -1249,14 +1246,29 @@ function ListingEditForm({
               accept="image/*"
               disabled={!availableSlots}
               onChange={(event) => {
-                setFiles(Array.from(event.target.files ?? []).slice(0, availableSlots));
+                setFiles((current) => [...current, ...Array.from(event.target.files ?? [])].slice(0, maxProductImages - visibleImages.length));
                 event.target.value = "";
               }}
             />
           </label>
         </div>
+        {removedImageIds.length ? (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <span>{removedImageIds.length} foto{removedImageIds.length === 1 ? "" : "s"} marcada{removedImageIds.length === 1 ? "" : "s"} para remover.</span>
+            <button
+              className="font-black hover:text-amber-950"
+              type="button"
+              onClick={() => {
+                setRemovedImageIds([]);
+                setFiles((current) => current.slice(0, Math.max(0, maxProductImages - product.images.length)));
+              }}
+            >
+              Desfazer
+            </button>
+          </div>
+        ) : null}
         <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
-          {product.images.map((image) => (
+          {visibleImages.map((image) => (
             <div key={image.id} className="group relative overflow-hidden rounded-md bg-white">
               <img
                 className="aspect-square w-full object-cover"
@@ -1272,12 +1284,7 @@ function ListingEditForm({
               <button
                 className="absolute bottom-1 right-1 inline-flex min-h-8 items-center gap-1 rounded-md bg-red-600 px-2 text-xs font-black text-white shadow-soft transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                 type="button"
-                disabled={removeImage.isPending}
-                onClick={() => {
-                  if (window.confirm("Remover esta fotografia do anuncio?")) {
-                    void removeImage.mutate(image.id);
-                  }
-                }}
+                onClick={() => setRemovedImageIds((current) => [...new Set([...current, image.id])])}
               >
                 <Trash2 size={14} />
                 Remover
@@ -1288,15 +1295,23 @@ function ListingEditForm({
             <div key={`${preview.file.name}-${preview.file.lastModified}`} className="relative">
               <img className="aspect-square rounded-md object-cover" src={preview.url} alt={preview.file.name} />
               <span className="absolute left-1 top-1 rounded bg-brand-700 px-1.5 py-0.5 text-[10px] font-black text-white">Nova</span>
+              <button
+                className="absolute bottom-1 right-1 inline-flex min-h-8 items-center gap-1 rounded-md bg-gray-950 px-2 text-xs font-black text-white shadow-soft transition hover:bg-red-600"
+                type="button"
+                onClick={() => setFiles((current) => current.filter((file) => file !== preview.file))}
+              >
+                <X size={14} />
+                Tirar
+              </button>
             </div>
           ))}
         </div>
       </div>
 
-      {save.error instanceof Error || removeImage.error instanceof Error ? (
+      {save.error instanceof Error ? (
         <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" role="alert">
           <AlertCircle className="mt-0.5 shrink-0" size={17} />
-          <span>{save.error instanceof Error ? save.error.message : removeImage.error instanceof Error ? removeImage.error.message : ""}</span>
+          <span>{save.error.message}</span>
         </div>
       ) : null}
 
@@ -1433,10 +1448,6 @@ export function MyListingsPage() {
               onCancel={() => setEditingId(null)}
               onSaved={() => {
                 setEditingId(null);
-                void queryClient.invalidateQueries({ queryKey: ["my-products"] });
-                void queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
-              }}
-              onChanged={() => {
                 void queryClient.invalidateQueries({ queryKey: ["my-products"] });
                 void queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
               }}

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path, re_path
 from django.views.static import serve
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -26,7 +27,13 @@ router.register("reviews", ReviewViewSet, basename="reviews")
 router.register("reports", ReportViewSet, basename="reports")
 router.register("verification", VerificationRequestViewSet, basename="verification")
 
+
+def health_check(request):
+    return JsonResponse({"status": "ok", "release": "railway-root-backend"})
+
+
 urlpatterns = [
+    path("health/", health_check, name="health-check"),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

@@ -84,6 +84,7 @@ def test_authenticated_user_can_create_product_with_multiple_images(category, se
 
     assert response.status_code == 201, response.data
     assert len(response.data["images"]) == 6
+    assert response.data["images"][0]["image"].startswith("http://testserver/media/")
     assert ProductImage.objects.filter(product__slug=response.data["slug"]).count() == 6
 
 

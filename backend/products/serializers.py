@@ -11,6 +11,8 @@ from .models import Product, ProductImage
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
         fields = [
@@ -22,7 +24,12 @@ class ProductImageSerializer(serializers.ModelSerializer):
             "moderation_reason",
             "created_at",
         ]
-        read_only_fields = ["id", "moderation_status", "moderation_reason", "created_at"]
+        read_only_fields = ["id", "image", "moderation_status", "moderation_reason", "created_at"]
+
+    def get_image(self, obj):
+        request = self.context.get("request")
+        url = obj.image.url
+        return request.build_absolute_uri(url) if request else url
 
 
 class ProductSerializer(serializers.ModelSerializer):

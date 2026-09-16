@@ -30,7 +30,7 @@ import { CategoryCard, LocationDisplay, PriceDisplay, ProductGrid, ReviewStars, 
 import { Button, Card, EmptyState, Input, Select, SkeletonCard, Textarea } from "./components/ui";
 import { API_URL, apiRequest, normalizePage, toQuery } from "./lib/api";
 import { useAuth } from "./lib/auth";
-import { productImage } from "./lib/images";
+import { fallbackImage, productImage } from "./lib/images";
 import { setSeo } from "./lib/seo";
 import type { Category, Conversation, Favorite, Paginated, Product, User } from "./types";
 
@@ -102,6 +102,9 @@ function FeaturedTile({ product, large = false }: { product: Product; large?: bo
         className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
         src={productImage(product)}
         alt={product.title}
+        onError={(event) => {
+          event.currentTarget.src = fallbackImage(product.id);
+        }}
       />
       <div className="absolute left-3 top-3 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-brand-700">
         Curado
@@ -375,9 +378,26 @@ export function ProductPage() {
     <Shell>
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-3">
-          <img className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft" src={productImage(product.data)} alt={product.data.title} />
+          <img
+            className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft"
+            src={productImage(product.data)}
+            alt={product.data.title}
+            onError={(event) => {
+              if (product.data) event.currentTarget.src = fallbackImage(product.data.id);
+            }}
+          />
           <div className="grid grid-cols-4 gap-2">
-            {product.data.images.slice(0, 8).map((image) => <img key={image.id} className="aspect-square rounded-md object-cover" src={image.image} alt={product.data?.title} />)}
+            {product.data.images.slice(0, 8).map((image) => (
+              <img
+                key={image.id}
+                className="aspect-square rounded-md object-cover"
+                src={image.image}
+                alt={product.data?.title}
+                onError={(event) => {
+                  if (product.data) event.currentTarget.src = fallbackImage(product.data.id);
+                }}
+              />
+            ))}
           </div>
         </div>
         <Card className="p-5">
@@ -830,7 +850,14 @@ export function FavoritesPage() {
       <div className="grid gap-3 md:grid-cols-2">
         {(favorites.data ?? []).map((favorite) => (
           <Card key={favorite.id} className="flex overflow-hidden">
-            <img className="h-32 w-32 object-cover" src={productImage(favorite.product)} alt={favorite.product.title} />
+            <img
+              className="h-32 w-32 object-cover"
+              src={productImage(favorite.product)}
+              alt={favorite.product.title}
+              onError={(event) => {
+                event.currentTarget.src = fallbackImage(favorite.product.id);
+              }}
+            />
             <div className="flex flex-1 flex-col justify-between p-4">
               <Link to={`/produto/${favorite.product.slug}`} className="font-semibold">{favorite.product.title}</Link>
               <PriceDisplay value={favorite.product.price} />
@@ -1109,7 +1136,14 @@ export function MyListingsPage() {
       <div className="grid gap-3">
         {(products.data ?? []).map((product) => (
           <Card key={product.id} className="flex flex-col gap-3 p-4 md:flex-row md:items-center">
-            <img className="h-28 w-full rounded-md object-cover md:w-36" src={productImage(product)} alt={product.title} />
+            <img
+              className="h-28 w-full rounded-md object-cover md:w-36"
+              src={productImage(product)}
+              alt={product.title}
+              onError={(event) => {
+                event.currentTarget.src = fallbackImage(product.id);
+              }}
+            />
             <div className="flex-1">
               <Link to={`/produto/${product.slug}`} className="font-semibold">{product.title}</Link>
               <p className="text-sm text-gray-500">{product.status}</p>

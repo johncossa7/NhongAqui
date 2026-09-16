@@ -8,6 +8,10 @@ const fallbackImages = [
   "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=900&q=75"
 ];
 
+export function fallbackImage(id: number) {
+  return fallbackImages[id % fallbackImages.length];
+}
+
 export function productImage(product: Product | { primary_image?: string | null; id: number }) {
   if ("images" in product) {
     const primary = product.images.find((image) => image.is_primary) ?? product.images[0];
@@ -18,5 +22,5 @@ export function productImage(product: Product | { primary_image?: string | null;
   if ("primary_image" in product && product.primary_image) {
     return product.primary_image;
   }
-  return fallbackImages[product.id % fallbackImages.length];
+  return fallbackImage(product.id);
 }

@@ -1,7 +1,7 @@
 import { Heart, MapPin, ShieldCheck, Star, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import { productImage } from "../lib/images";
+import { fallbackImage, productImage } from "../lib/images";
 import type { Category, Product } from "../types";
 import { Card } from "./ui";
 
@@ -58,6 +58,9 @@ export function ProductCard({ product }: { product: Product }) {
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
             src={productImage(product)}
             alt={product.title}
+            onError={(event) => {
+              event.currentTarget.src = fallbackImage(product.id);
+            }}
           />
           <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
             {product.featured ? (

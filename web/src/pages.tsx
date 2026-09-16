@@ -44,7 +44,7 @@ const conditionLabels: Record<string, string> = {
 
 function Shell({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
   return (
-    <main className={`mx-auto w-full flex-1 ${narrow ? "max-w-3xl" : "max-w-[1500px]"} px-4 py-7 md:py-10 lg:px-8`}>
+    <main className={`mx-auto w-full flex-1 ${narrow ? "max-w-3xl" : "max-w-[1500px]"} px-4 py-5 md:py-8 lg:px-8`}>
       {children}
     </main>
   );
@@ -69,7 +69,7 @@ function SearchBar({ initial = "" }: { initial?: string }) {
   const navigate = useNavigate();
   return (
     <form
-      className="flex border border-gray-950 bg-white p-1 shadow-[10px_10px_0_rgba(0,128,55,0.12)]"
+      className="flex rounded-full border border-gray-200 bg-white p-1 shadow-soft"
       onSubmit={(event) => {
         event.preventDefault();
         navigate(`/shop${toQuery({ search: value })}`);
@@ -96,7 +96,7 @@ function FeaturedTile({ product, large = false }: { product: Product; large?: bo
   return (
     <Link
       to={`/produto/${product.slug}`}
-      className={`group relative overflow-hidden bg-gray-200 ${large ? "row-span-2 min-h-80" : "min-h-40"}`}
+      className={`group relative overflow-hidden rounded-3xl bg-gray-200 ${large ? "row-span-2 min-h-80" : "min-h-40"}`}
     >
       <img
         className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
@@ -106,7 +106,7 @@ function FeaturedTile({ product, large = false }: { product: Product; large?: bo
           event.currentTarget.src = fallbackImage(product.id);
         }}
       />
-      <div className="absolute left-3 top-3 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-brand-700">
+      <div className="absolute left-3 top-3 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-brand-700">
         Curado
       </div>
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-950/90 to-transparent p-4 text-white">
@@ -126,17 +126,17 @@ export function HomePage() {
 
   return (
     <Shell>
-      <section className="grid gap-10 border-b border-gray-950 pb-12 md:grid-cols-[1.02fr_0.98fr] md:items-center">
+      <section className="grid gap-8 rounded-[2rem] border border-gray-200 bg-white p-4 shadow-soft md:grid-cols-[1.02fr_0.98fr] md:items-center md:p-8">
         <div className="space-y-7">
           <div>
-            <p className="inline-flex bg-gray-950 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-white">
-              Maputo e Matola primeiro
+            <p className="inline-flex rounded-full bg-brand-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-brand-700">
+              Marketplace para Mocambique
             </p>
-            <h1 className="mt-4 max-w-2xl text-5xl font-black uppercase leading-[0.92] tracking-[-0.03em] text-gray-950 md:text-7xl">
-              Encontre o que procura. Venda o que ja nao precisa.
+            <h1 className="mt-4 max-w-2xl text-4xl font-black leading-[0.95] tracking-[-0.02em] text-accent-ink md:text-6xl">
+              Compra e venda com conversa direta.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-8 text-gray-600">
-              Um mercado digital feito para Mocambique, com anuncios rapidos, pesquisa simples e contacto direto.
+              Publique produtos em minutos, explore oportunidades por cidade e fale com compradores ou vendedores no mesmo lugar.
             </p>
           </div>
           <SearchBar />
@@ -149,20 +149,20 @@ export function HomePage() {
             </Link>
             <Link to="/vender"><Button variant="secondary">Vender agora</Button></Link>
           </div>
-          <div className="grid max-w-xl grid-cols-3 border border-gray-950 bg-white">
+          <div className="grid max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-gray-200 bg-accent-cream">
             {[
-              ["20+", "produtos"],
-              ["14", "categorias"],
-              ["1", "conta gratis"]
+              ["8", "fotos por anuncio"],
+              ["0 MT", "publicar"],
+              ["Chat", "comprador direto"]
             ].map(([value, label]) => (
-              <div key={label} className="border-r border-gray-950 p-4 last:border-r-0">
-                <p className="text-2xl font-black text-gray-950">{value}</p>
+              <div key={label} className="border-r border-gray-200 p-4 last:border-r-0">
+                <p className="text-2xl font-black text-accent-ink">{value}</p>
                 <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-500">{label}</p>
               </div>
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 border border-gray-950 bg-gray-950 p-3">
+        <div className="grid grid-cols-2 gap-3 rounded-[1.5rem] bg-accent-ink p-3">
           {showcase[0] ? <FeaturedTile product={showcase[0]} large /> : null}
           {showcase.slice(1).map((product) => <FeaturedTile key={product.id} product={product} />)}
         </div>
@@ -229,11 +229,11 @@ export function ShopPage() {
 
   return (
     <Shell>
-      <div className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
+      <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Comprar</p>
-          <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Explorar produtos</h1>
-          <p className="mt-1 text-sm text-gray-600">Filtre por preco, cidade, categoria e ordenacao.</p>
+          <h1 className="text-3xl font-black tracking-tight text-accent-ink md:text-4xl">Explorar produtos</h1>
+          <p className="mt-1 text-sm text-gray-600">Procure, filtre e guarde os produtos que quer ver depois.</p>
         </div>
         <Link to="/vender">
           <Button>
@@ -242,8 +242,8 @@ export function ShopPage() {
           </Button>
         </Link>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <form onSubmit={update} className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-soft lg:sticky lg:top-24 lg:self-start">
+      <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+        <form onSubmit={update} className="space-y-3 rounded-[1.5rem] border border-gray-200 bg-white p-4 shadow-soft lg:sticky lg:top-24 lg:self-start">
           <div className="mb-1 flex items-center justify-between">
             <h2 className="font-black text-gray-950">Filtros</h2>
             <button
@@ -283,7 +283,7 @@ export function ShopPage() {
           <Button type="submit" className="w-full"><Search size={18} /> Filtrar</Button>
         </form>
         <section>
-          <div className="mb-4 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-soft">
+          <div className="mb-4 flex items-center justify-between rounded-[1.25rem] border border-gray-200 bg-white px-4 py-3 shadow-soft">
             <p className="text-sm font-bold text-gray-950">
               {products.isLoading ? "A carregar produtos..." : `${products.data?.length ?? 0} resultados nesta pagina`}
             </p>
@@ -382,7 +382,7 @@ export function ProductPage() {
     <Shell>
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-3">
-          <div className="relative overflow-hidden rounded-lg bg-white shadow-soft">
+          <div className="relative overflow-hidden rounded-[1.5rem] bg-white shadow-soft">
             <img
               className="aspect-[4/3] w-full object-cover"
               src={selectedImage?.image ?? productImage(product.data)}
@@ -391,7 +391,7 @@ export function ProductPage() {
                 if (product.data) event.currentTarget.src = fallbackImage(product.data.id);
               }}
             />
-            <div className="absolute bottom-3 right-3 rounded-md bg-gray-950/85 px-3 py-1 text-sm font-black text-white">
+            <div className="absolute bottom-3 right-3 rounded-full bg-accent-ink/85 px-3 py-1 text-sm font-black text-white">
               {galleryImages.length ? `${selectedImageIndex + 1}/${galleryImages.length}` : "0/0"}
             </div>
           </div>
@@ -403,7 +403,7 @@ export function ProductPage() {
                   key={image.id}
                   type="button"
                   className={`relative overflow-hidden rounded-md border bg-white transition ${
-                    selected ? "border-gray-950 ring-2 ring-brand-500" : "border-gray-200 hover:border-gray-950"
+                    selected ? "border-brand-600 ring-2 ring-brand-500" : "border-gray-200 hover:border-brand-500"
                   }`}
                   onClick={() => setSelectedImageId(image.id)}
                   aria-label={`Ver fotografia ${index + 1}`}
@@ -417,7 +417,7 @@ export function ProductPage() {
                     }}
                   />
                   {image.is_primary ? (
-                    <span className="absolute left-1 top-1 rounded bg-gray-950 px-1.5 py-0.5 text-[10px] font-black text-white">Capa</span>
+                    <span className="absolute left-1 top-1 rounded-full bg-accent-ink px-1.5 py-0.5 text-[10px] font-black text-white">Capa</span>
                   ) : null}
                 </button>
               );
@@ -434,7 +434,7 @@ export function ProductPage() {
             ) : null}
           </div>
         </div>
-        <Card className="p-5">
+        <Card className="p-5 shadow-soft">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-3xl font-bold text-gray-950">{product.data.title}</h1>
@@ -445,13 +445,13 @@ export function ProductPage() {
             </Button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-sm">
-            <span className="rounded-full bg-gray-100 px-3 py-1">{conditionLabels[product.data.condition]}</span>
-            <span className="rounded-full bg-gray-100 px-3 py-1">{product.data.negotiable ? "Negociavel" : "Preco fixo"}</span>
-            <span className="rounded-full bg-gray-100 px-3 py-1">{product.data.views_count} vistas</span>
+            <span className="rounded-full bg-brand-50 px-3 py-1 font-bold text-brand-700">{conditionLabels[product.data.condition]}</span>
+            <span className="rounded-full bg-accent-cream px-3 py-1 font-bold text-gray-700">{product.data.negotiable ? "Negociavel" : "Preco fixo"}</span>
+            <span className="rounded-full bg-accent-cream px-3 py-1 font-bold text-gray-700">{product.data.views_count} vistas</span>
           </div>
           <p className="mt-4 text-gray-700">{product.data.description}</p>
           <div className="mt-4"><LocationDisplay city={product.data.city} neighborhood={product.data.neighborhood} /></div>
-          <div className="mt-5 rounded-lg border border-gray-200 p-4">
+          <div className="mt-5 rounded-2xl border border-gray-200 bg-accent-cream p-4">
             <div className="flex items-center justify-between gap-3">
               <Link to={`/vendedor/${seller.id}`} className="flex items-center gap-3">
                 <span className="flex size-11 items-center justify-center rounded-md bg-gray-100"><UserRound size={22} /></span>
@@ -495,7 +495,7 @@ function ReportForm({ productId }: { productId: number }) {
     mutationFn: () => apiRequest("/reports/", { method: "POST", body: JSON.stringify({ product_id: productId, reason, description }) })
   });
   return (
-    <form className="mt-4 space-y-3 rounded-lg bg-gray-50 p-4" onSubmit={(event) => { event.preventDefault(); void report.mutate(); }}>
+    <form className="mt-4 space-y-3 rounded-2xl bg-accent-cream p-4" onSubmit={(event) => { event.preventDefault(); void report.mutate(); }}>
       <Select value={reason} onChange={(event) => setReason(event.target.value)}>
         <option value="fraud">Fraude</option>
         <option value="fake_product">Produto falso</option>
@@ -519,7 +519,7 @@ function ReviewForm({ productId, onDone }: { productId: number; onDone: () => vo
     onSuccess: onDone
   });
   return (
-    <form className="mt-4 space-y-3 rounded-lg bg-gray-50 p-4" onSubmit={(event) => { event.preventDefault(); void review.mutate(); }}>
+    <form className="mt-4 space-y-3 rounded-2xl bg-accent-cream p-4" onSubmit={(event) => { event.preventDefault(); void review.mutate(); }}>
       <Select value={rating} onChange={(event) => setRating(Number(event.target.value))}>
         {[5, 4, 3, 2, 1].map((value) => <option key={value} value={value}>{value} estrelas</option>)}
       </Select>
@@ -652,7 +652,7 @@ export function SellPage() {
 
   return (
     <Shell>
-      <div className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
+      <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Vender</p>
           <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Publicar anuncio</h1>
@@ -680,7 +680,7 @@ export function SellPage() {
             </div>
             <div className="p-5">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 text-center transition hover:border-brand-600 hover:bg-brand-50">
+                <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-accent-cream text-center transition hover:border-brand-600 hover:bg-brand-50">
                   <ImagePlus className="text-brand-600" size={30} />
                   <span className="mt-2 text-sm font-black text-gray-950">Adicionar fotos</span>
                   <span className="mt-1 text-xs text-gray-500">JPG, PNG, WebP</span>
@@ -696,7 +696,7 @@ export function SellPage() {
                   />
                 </label>
                 {previews.map((preview, index) => (
-                  <div key={`${preview.file.name}-${preview.file.lastModified}-${index}`} className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                  <div key={`${preview.file.name}-${preview.file.lastModified}-${index}`} className="group relative aspect-square overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
                     <img className="h-full w-full object-cover" src={preview.url} alt={preview.file.name} />
                     <div className="absolute inset-x-2 top-2 flex items-center justify-between gap-2">
                       <button
@@ -798,8 +798,8 @@ export function SellPage() {
                 <button
                   key={plan.id}
                   type="button"
-                  className={`rounded-lg border p-4 text-left transition hover:border-gray-950 ${
-                    promotion === plan.id ? "border-gray-950 bg-gray-950 text-white" : "border-gray-200 bg-white"
+                  className={`rounded-2xl border p-4 text-left transition hover:border-brand-600 ${
+                    promotion === plan.id ? "border-brand-600 bg-brand-600 text-white" : "border-gray-200 bg-white"
                   }`}
                   onClick={() => setPromotion(plan.id)}
                 >
@@ -956,7 +956,7 @@ export function AdminPage() {
 
   return (
     <Shell>
-      <div className="mb-6 rounded-xl bg-white p-5 shadow-soft">
+      <div className="mb-6 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft">
         <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Administracao</p>
         <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Painel Admin</h1>
         <p className="mt-1 text-sm text-gray-600">Gerir anuncios, contas e atividade da plataforma.</p>
@@ -965,7 +965,7 @@ export function AdminPage() {
       <div className="mb-6 grid gap-3 md:grid-cols-3">
         {stats.map(({ label, value, icon: Icon }) => (
           <Card key={label} className="flex items-center gap-3 p-4 shadow-soft">
-            <span className="flex size-11 items-center justify-center rounded-md bg-gray-950 text-white">
+            <span className="flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
               <Icon size={20} />
             </span>
             <span>
@@ -1080,7 +1080,7 @@ export function MessagesPage() {
       <div className="grid min-h-[520px] gap-4 lg:grid-cols-[320px_1fr]">
         <aside className="space-y-2">
           {(conversations.data ?? []).map((conversation) => (
-            <button key={conversation.id} className="w-full rounded-lg border border-gray-200 bg-white p-3 text-left shadow-soft" onClick={() => setParams({ conversation: String(conversation.id) })}>
+            <button key={conversation.id} className="w-full rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-soft transition hover:border-brand-300" onClick={() => setParams({ conversation: String(conversation.id) })}>
               <span className="block font-semibold">{conversation.product.title}</span>
               <span className="text-sm text-gray-500">{conversation.messages.at(-1)?.content ?? "Sem mensagens ainda"}</span>
             </button>
@@ -1092,7 +1092,7 @@ export function MessagesPage() {
               <h2 className="border-b border-gray-200 pb-3 font-semibold">{selected.product.title}</h2>
               <div className="flex-1 space-y-3 overflow-auto py-4">
                 {selected.messages.map((message) => (
-                  <div key={message.id} className="rounded-lg bg-gray-100 p-3">
+                  <div key={message.id} className="rounded-2xl bg-accent-cream p-3">
                     <p className="text-sm font-semibold">{message.sender.full_name}</p>
                     <p>{message.content}</p>
                   </div>
@@ -1229,7 +1229,7 @@ function ListingEditForm({
       <div className="grid gap-3 lg:grid-cols-[220px_1fr]">
         <div>
           <img
-            className="aspect-square w-full rounded-lg object-cover"
+            className="aspect-square w-full rounded-2xl object-cover"
             src={productImage(product)}
             alt={product.title}
             onError={(event) => {
@@ -1266,7 +1266,7 @@ function ListingEditForm({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div className="rounded-2xl border border-gray-200 bg-accent-cream p-3">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <p className="font-black text-gray-950">Fotografias do anuncio</p>
@@ -1274,7 +1274,7 @@ function ListingEditForm({
               Remova antigas ou adicione novas. Pode adicionar mais {availableSlots} foto{availableSlots === 1 ? "" : "s"}.
             </p>
           </div>
-          <label className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-4 text-sm font-bold transition ${availableSlots ? "bg-gray-950 text-white hover:bg-brand-700" : "cursor-not-allowed bg-gray-200 text-gray-500"}`}>
+          <label className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-full px-4 text-sm font-bold transition ${availableSlots ? "bg-brand-600 text-white hover:bg-brand-700" : "cursor-not-allowed bg-gray-200 text-gray-500"}`}>
             <ImagePlus size={17} />
             Adicionar fotos
             <input
@@ -1322,7 +1322,7 @@ function ListingEditForm({
                 }}
               />
               {image.is_primary ? (
-                <span className="absolute left-1 top-1 rounded bg-gray-950 px-1.5 py-0.5 text-[10px] font-black text-white">Capa</span>
+                <span className="absolute left-1 top-1 rounded-full bg-accent-ink px-1.5 py-0.5 text-[10px] font-black text-white">Capa</span>
               ) : null}
               <button
                 className="absolute bottom-1 right-1 inline-flex min-h-8 items-center gap-1 rounded-md bg-red-600 px-2 text-xs font-black text-white shadow-soft transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1339,7 +1339,7 @@ function ListingEditForm({
               <img className="aspect-square rounded-md object-cover" src={preview.url} alt={preview.file.name} />
               <span className="absolute left-1 top-1 rounded bg-brand-700 px-1.5 py-0.5 text-[10px] font-black text-white">Nova</span>
               <button
-                className="absolute bottom-1 right-1 inline-flex min-h-8 items-center gap-1 rounded-md bg-gray-950 px-2 text-xs font-black text-white shadow-soft transition hover:bg-red-600"
+                className="absolute bottom-1 right-1 inline-flex min-h-8 items-center gap-1 rounded-full bg-accent-ink px-2 text-xs font-black text-white shadow-soft transition hover:bg-accent-red"
                 type="button"
                 onClick={() => setFiles((current) => current.filter((file) => file !== preview.file))}
               >
@@ -1388,7 +1388,7 @@ function ConversationPreview({ conversation }: { conversation: Conversation }) {
         <p className="mt-1 line-clamp-2 text-sm text-gray-500">{lastMessage?.content ?? "Ainda sem mensagens nesta conversa."}</p>
       </div>
       <Link
-        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-gray-950/15 bg-white px-3 text-sm font-bold text-gray-950 transition hover:border-gray-950"
+        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-gray-950/15 bg-white px-3 text-sm font-bold text-gray-950 transition hover:border-brand-600 hover:text-brand-700"
         to={`/mensagens?conversation=${conversation.id}`}
       >
         <MessageCircle size={16} />
@@ -1406,7 +1406,7 @@ function ProductMessagesPanel({
   isLoading: boolean;
 }) {
   return (
-    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+    <div className="mt-4 rounded-2xl border border-gray-200 bg-accent-cream p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-black text-gray-950">Mensagens deste produto</p>
@@ -1473,7 +1473,7 @@ export function MyListingsPage() {
   };
   return (
     <Shell>
-      <div className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
+      <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Vendedor</p>
           <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Minhas vendas</h1>
@@ -1689,7 +1689,7 @@ export function InfoPage({ title, legal = false }: { title: string; legal?: bool
   return (
     <Shell narrow>
       <h1 className="mb-4 text-3xl font-bold">{title}</h1>
-      <div className="space-y-4 rounded-lg bg-white p-5 text-gray-700 shadow-soft">
+      <div className="space-y-4 rounded-2xl bg-white p-5 text-gray-700 shadow-soft">
         <p>NhongAqui e um marketplace digital criado para ajudar compradores e vendedores em Mocambique a encontrarem oportunidades com mais confianca.</p>
         {legal ? (
           <p className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">Texto provisorio. Requer revisao juridica antes do lancamento publico.</p>

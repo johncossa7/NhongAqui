@@ -24,33 +24,33 @@ export function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   return (
-    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex min-h-16 max-w-[1500px] items-center gap-4 px-4 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl">
+      <div className="mx-auto flex min-h-[4.25rem] max-w-[1500px] items-center gap-4 px-4 lg:px-8">
         <Brand />
         <button
-          className="hidden min-h-11 max-w-2xl flex-1 items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-4 text-left text-sm text-gray-500 transition hover:border-gray-950 hover:bg-white md:flex"
+          className="hidden min-h-12 max-w-2xl flex-1 items-center gap-2 rounded-full border border-gray-200 bg-accent-cream px-4 text-left text-sm text-gray-500 transition hover:border-brand-600 hover:bg-white md:flex"
           onClick={() => navigate("/shop")}
         >
           <Search size={18} className="text-brand-600" />
           <span>Pesquisar telemoveis, moveis, consolas...</span>
         </button>
         <nav className="ml-auto hidden items-center gap-1.5 md:flex">
-          <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-100 hover:text-gray-950" to="/shop">
+          <NavLink className="rounded-full px-3 py-2 text-sm font-black text-gray-700 transition hover:bg-brand-50 hover:text-brand-700" to="/shop">
             Categorias
           </NavLink>
-          <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-100 hover:text-gray-950" to="/favoritos">
+          <NavLink className="rounded-full px-3 py-2 text-sm font-black text-gray-700 transition hover:bg-brand-50 hover:text-brand-700" to="/favoritos">
             Favoritos
           </NavLink>
-          <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-100 hover:text-gray-950" to="/mensagens">
+          <NavLink className="rounded-full px-3 py-2 text-sm font-black text-gray-700 transition hover:bg-brand-50 hover:text-brand-700" to="/mensagens">
             Mensagens
           </NavLink>
           {user ? (
-            <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-100 hover:text-gray-950" to="/vendas">
+            <NavLink className="rounded-full px-3 py-2 text-sm font-black text-gray-700 transition hover:bg-brand-50 hover:text-brand-700" to="/vendas">
               Vendas
             </NavLink>
           ) : null}
           {user?.is_staff ? (
-            <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-brand-700 transition hover:bg-brand-50 hover:text-brand-700" to="/admin">
+            <NavLink className="rounded-full px-3 py-2 text-sm font-black text-brand-700 transition hover:bg-brand-50 hover:text-brand-700" to="/admin">
               Admin
             </NavLink>
           ) : null}
@@ -101,7 +101,7 @@ export function MobileNav() {
             to={item.to}
             className={({ isActive }) =>
               `flex flex-col items-center gap-1 px-1 py-2 text-xs font-black transition ${
-                item.raised ? "-mt-5 bg-gray-950 py-3 text-white shadow-lift ring-2 ring-brand-500" : isActive ? "text-brand-700" : "text-gray-500"
+                item.raised ? "-mt-5 rounded-2xl bg-brand-600 py-3 text-white shadow-glow ring-2 ring-accent-yellow" : isActive ? "text-brand-700" : "text-gray-500"
               }`
             }
           >
@@ -116,7 +116,7 @@ export function MobileNav() {
 
 export function Footer() {
   return (
-    <footer className="border-t border-gray-950 bg-gray-950 text-white">
+    <footer className="border-t border-accent-ink bg-accent-ink text-white">
       <div className="mx-auto grid max-w-[1500px] gap-6 px-4 py-10 text-sm text-gray-300 md:grid-cols-[1.4fr_repeat(7,auto)] lg:px-8">
         <div>
           <Brand inverted />
@@ -142,7 +142,7 @@ export function Footer() {
 
 export function AppLayout() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#f6f7f5] safe-bottom md:pb-0">
+    <div className="flex min-h-screen flex-col bg-transparent safe-bottom md:pb-0">
       <Header />
       <Outlet />
       <Footer />

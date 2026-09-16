@@ -1113,7 +1113,7 @@ export function ProfilePage() {
         <Button type="submit">Guardar</Button>
       </form>
       <div className="mt-5 flex gap-3">
-        <Link to="/meus-anuncios"><Button variant="secondary">Meus anuncios</Button></Link>
+        <Link to="/vendas"><Button variant="secondary">Minhas vendas</Button></Link>
         <Link to="/vender"><Button>Vender agora</Button></Link>
       </div>
     </Shell>
@@ -1285,6 +1285,67 @@ function ListingEditForm({
   );
 }
 
+function ConversationPreview({ conversation }: { conversation: Conversation }) {
+  const lastMessage = conversation.messages.at(-1);
+  const lastDate = conversation.last_message_at
+    ? new Intl.DateTimeFormat("pt-MZ", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(conversation.last_message_at))
+    : null;
+
+  return (
+    <div className="grid gap-2 rounded-md border border-gray-200 bg-white p-3 sm:grid-cols-[1fr_auto] sm:items-center">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate text-sm font-black text-gray-950">{conversation.buyer.full_name || "Comprador"}</p>
+          {lastDate ? <span className="text-xs font-bold text-gray-400">{lastDate}</span> : null}
+        </div>
+        <p className="mt-1 line-clamp-2 text-sm text-gray-500">{lastMessage?.content ?? "Ainda sem mensagens nesta conversa."}</p>
+      </div>
+      <Link
+        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-gray-950/15 bg-white px-3 text-sm font-bold text-gray-950 transition hover:border-gray-950"
+        to={`/mensagens?conversation=${conversation.id}`}
+      >
+        <MessageCircle size={16} />
+        Abrir
+      </Link>
+    </div>
+  );
+}
+
+function ProductMessagesPanel({
+  conversations,
+  isLoading
+}: {
+  conversations: Conversation[];
+  isLoading: boolean;
+}) {
+  return (
+    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-black text-gray-950">Mensagens deste produto</p>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-brand-700">
+            {conversations.length} conversa{conversations.length === 1 ? "" : "s"}
+          </p>
+        </div>
+        <Link className="text-sm font-bold text-gray-600 hover:text-brand-700" to="/mensagens">
+          Ver mensagens
+        </Link>
+      </div>
+      {isLoading ? (
+        <p className="rounded-md bg-white p-3 text-sm text-gray-500">A carregar mensagens...</p>
+      ) : conversations.length ? (
+        <div className="space-y-2">
+          {conversations.slice(0, 3).map((conversation) => (
+            <ConversationPreview key={conversation.id} conversation={conversation} />
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-md bg-white p-3 text-sm text-gray-500">Ainda nao recebeu mensagens de compradores para este produto.</p>
+      )}
+    </div>
+  );
+}
+
 export function MyListingsPage() {
   const queryClient = useQueryClient();
   const categories = useCategories();
@@ -1293,17 +1354,41 @@ export function MyListingsPage() {
     queryKey: ["my-products"],
     queryFn: async () => normalizePage(await apiRequest<Paginated<Product>>("/products/mine/"))
   });
+  const conversations = useQuery({
+    queryKey: ["seller-conversations"],
+    queryFn: async () => normalizePage(await apiRequest<Paginated<Conversation>>("/conversations/"))
+  });
+  const sellerProductIds = useMemo(() => new Set((products.data ?? []).map((product) => product.id)), [products.data]);
+  const sellerConversations = useMemo(
+    () => (conversations.data ?? []).filter((conversation) => sellerProductIds.has(conversation.product.id)),
+    [conversations.data, sellerProductIds]
+  );
+  const conversationsByProduct = useMemo(() => {
+    const grouped = new Map<number, Conversation[]>();
+    sellerConversations.forEach((conversation) => {
+      const items = grouped.get(conversation.product.id) ?? [];
+      grouped.set(conversation.product.id, [...items, conversation]);
+    });
+    return grouped;
+  }, [sellerConversations]);
   const action = useMutation({
     mutationFn: ({ slug, next }: { slug: string; next: "mark_reserved" | "mark_sold" }) => apiRequest(`/products/${slug}/${next}/`, { method: "POST" }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-products"] })
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["my-products"] });
+      await queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
+    }
   });
   return (
     <Shell>
       <div className="mb-6 flex flex-col gap-4 rounded-xl bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Vendedor</p>
-          <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Meus anuncios</h1>
-          <p className="mt-1 text-sm text-gray-600">Veja, edite e acompanhe os produtos que colocou a venda.</p>
+          <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Minhas vendas</h1>
+          <p className="mt-1 text-sm text-gray-600">Veja os seus produtos, edite o anuncio e responda aos compradores interessados.</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.12em] text-gray-500">
+            <span className="rounded-full bg-gray-100 px-3 py-1">{products.data?.length ?? 0} produtos publicados</span>
+            <span className="rounded-full bg-brand-50 px-3 py-1 text-brand-700">{sellerConversations.length} conversas recebidas</span>
+          </div>
         </div>
         <Link to="/vender">
           <Button>
@@ -1324,19 +1409,20 @@ export function MyListingsPage() {
               onSaved={() => {
                 setEditingId(null);
                 void queryClient.invalidateQueries({ queryKey: ["my-products"] });
+                void queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
               }}
             />
           ) : (
-            <Card key={product.id} className="grid gap-3 p-4 shadow-soft md:grid-cols-[160px_1fr_auto] md:items-center">
+            <Card key={product.id} className="grid gap-4 p-4 shadow-soft lg:grid-cols-[180px_minmax(0,1fr)_auto] lg:items-start">
               <img
-                className="h-32 w-full rounded-md object-cover md:h-28"
+                className="h-44 w-full rounded-md object-cover lg:h-40"
                 src={productImage(product)}
                 alt={product.title}
                 onError={(event) => {
                   event.currentTarget.src = fallbackImage(product.id);
                 }}
               />
-              <div>
+              <div className="min-w-0">
                 <Link to={`/produto/${product.slug}`} className="text-lg font-black text-gray-950 hover:text-brand-700">{product.title}</Link>
                 <div className="mt-1 flex flex-wrap gap-2 text-sm text-gray-500">
                   <span>{product.status}</span>
@@ -1344,8 +1430,12 @@ export function MyListingsPage() {
                   <span>{product.city}</span>
                 </div>
                 <p className="mt-2 text-xl"><PriceDisplay value={product.price} /></p>
+                <ProductMessagesPanel
+                  conversations={conversationsByProduct.get(product.id) ?? []}
+                  isLoading={conversations.isLoading}
+                />
               </div>
-              <div className="flex flex-wrap gap-2 md:justify-end">
+              <div className="flex flex-wrap gap-2 lg:max-w-44 lg:flex-col lg:items-stretch">
                 <Button variant="secondary" onClick={() => setEditingId(product.id)}>
                   Editar
                 </Button>

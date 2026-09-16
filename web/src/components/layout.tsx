@@ -1,4 +1,4 @@
-import { Heart, Home, PlusCircle, Search, ShieldCheck, UserRound } from "lucide-react";
+import { Heart, Home, Package, PlusCircle, Search, ShieldCheck, UserRound } from "lucide-react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 
 import brandIcon from "../assets/branding/NhongAqui_Icon.png";
@@ -44,6 +44,11 @@ export function Header() {
           <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-100 hover:text-gray-950" to="/mensagens">
             Mensagens
           </NavLink>
+          {user ? (
+            <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-gray-700 transition hover:bg-gray-100 hover:text-gray-950" to="/vendas">
+              Vendas
+            </NavLink>
+          ) : null}
           {user?.is_staff ? (
             <NavLink className="rounded-md px-3 py-2 text-sm font-bold text-brand-700 transition hover:bg-brand-50 hover:text-brand-700" to="/admin">
               Admin
@@ -81,7 +86,11 @@ export function MobileNav() {
     { to: "/shop", label: "Pesquisar", icon: Search },
     { to: "/vender", label: "Vender", icon: PlusCircle, raised: true },
     { to: "/favoritos", label: "Favoritos", icon: Heart },
-    user?.is_staff ? { to: "/admin", label: "Admin", icon: ShieldCheck } : { to: "/perfil", label: "Perfil", icon: UserRound }
+    user?.is_staff
+      ? { to: "/admin", label: "Admin", icon: ShieldCheck }
+      : user
+        ? { to: "/vendas", label: "Vendas", icon: Package }
+        : { to: "/perfil", label: "Perfil", icon: UserRound }
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-950/10 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden">

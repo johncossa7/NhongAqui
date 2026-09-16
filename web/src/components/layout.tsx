@@ -12,9 +12,7 @@ export function Brand({ inverted = false }: { inverted?: boolean }) {
       className={`flex items-center gap-2.5 font-black ${inverted ? "text-white" : "text-gray-950"}`}
       aria-label="NhongAqui"
     >
-      <span className="flex size-10 items-center justify-center bg-white ring-1 ring-gray-950/15">
-        <img className="size-8 object-contain" src={brandIcon} alt="" />
-      </span>
+      <img className="size-10 shrink-0 rounded-full object-cover" src={brandIcon} alt="" />
       <span className="text-[1.05rem] uppercase tracking-[0.12em]">NhongAqui</span>
     </Link>
   );

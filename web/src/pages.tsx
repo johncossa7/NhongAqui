@@ -316,6 +316,7 @@ export function ProductPage() {
   const queryClient = useQueryClient();
   const [reportOpen, setReportOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
   const product = useQuery({
     queryKey: ["product", slug],
     queryFn: () => apiRequest<Product>(`/products/${slug}/`)
@@ -373,31 +374,64 @@ export function ProductPage() {
 
   const currentFavorite = favorites.data?.find((item) => item.product.id === product.data.id);
   const seller = product.data.seller;
+  const galleryImages = product.data.images.slice(0, maxProductImages);
+  const selectedImage = galleryImages.find((image) => image.id === selectedImageId) ?? galleryImages[0];
+  const selectedImageIndex = selectedImage ? galleryImages.findIndex((image) => image.id === selectedImage.id) : -1;
 
   return (
     <Shell>
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-3">
-          <img
-            className="aspect-[4/3] w-full rounded-lg object-cover shadow-soft"
-            src={productImage(product.data)}
-            alt={product.data.title}
-            onError={(event) => {
-              if (product.data) event.currentTarget.src = fallbackImage(product.data.id);
-            }}
-          />
-          <div className="grid grid-cols-4 gap-2">
-            {product.data.images.slice(0, 8).map((image) => (
+          <div className="relative overflow-hidden rounded-lg bg-white shadow-soft">
+            <img
+              className="aspect-[4/3] w-full object-cover"
+              src={selectedImage?.image ?? productImage(product.data)}
+              alt={product.data.title}
+              onError={(event) => {
+                if (product.data) event.currentTarget.src = fallbackImage(product.data.id);
+              }}
+            />
+            <div className="absolute bottom-3 right-3 rounded-md bg-gray-950/85 px-3 py-1 text-sm font-black text-white">
+              {galleryImages.length ? `${selectedImageIndex + 1}/${galleryImages.length}` : "0/0"}
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {galleryImages.map((image, index) => {
+              const selected = selectedImage?.id === image.id;
+              return (
+                <button
+                  key={image.id}
+                  type="button"
+                  className={`relative overflow-hidden rounded-md border bg-white transition ${
+                    selected ? "border-gray-950 ring-2 ring-brand-500" : "border-gray-200 hover:border-gray-950"
+                  }`}
+                  onClick={() => setSelectedImageId(image.id)}
+                  aria-label={`Ver fotografia ${index + 1}`}
+                >
+                  <img
+                    className="aspect-square w-full object-cover"
+                    src={image.image}
+                    alt={product.data?.title}
+                    onError={(event) => {
+                      if (product.data) event.currentTarget.src = fallbackImage(product.data.id);
+                    }}
+                  />
+                  {image.is_primary ? (
+                    <span className="absolute left-1 top-1 rounded bg-gray-950 px-1.5 py-0.5 text-[10px] font-black text-white">Capa</span>
+                  ) : null}
+                </button>
+              );
+            })}
+            {!galleryImages.length ? (
               <img
-                key={image.id}
                 className="aspect-square rounded-md object-cover"
-                src={image.image}
-                alt={product.data?.title}
+                src={fallbackImage(product.data.id)}
+                alt={product.data.title}
                 onError={(event) => {
                   if (product.data) event.currentTarget.src = fallbackImage(product.data.id);
                 }}
               />
-            ))}
+            ) : null}
           </div>
         </div>
         <Card className="p-5">

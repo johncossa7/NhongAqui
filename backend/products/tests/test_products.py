@@ -10,6 +10,14 @@ from products.models import Product, ProductImage
 User = get_user_model()
 
 
+def tiny_gif(name: str):
+    return SimpleUploadedFile(
+        name,
+        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
+        content_type="image/gif",
+    )
+
+
 @pytest.fixture
 def category():
     return Category.objects.create(name="Telemoveis e Tablets")
@@ -53,6 +61,33 @@ def test_authenticated_user_can_create_product(category, seller):
 
 
 @pytest.mark.django_db
+def test_authenticated_user_can_create_product_with_multiple_images(category, seller):
+    client = APIClient()
+    client.force_authenticate(seller)
+    images = [tiny_gif(f"produto-{index}.gif") for index in range(6)]
+
+    response = client.post(
+        "/api/v1/products/",
+        {
+            "category": category.id,
+            "title": "Lote com varias fotos",
+            "description": "Produto fotografado de varios angulos.",
+            "price": "9000.00",
+            "negotiable": True,
+            "condition": "good",
+            "province": "Maputo",
+            "city": "Maputo",
+            "uploaded_images": images,
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 201, response.data
+    assert len(response.data["images"]) == 6
+    assert ProductImage.objects.filter(product__slug=response.data["slug"]).count() == 6
+
+
+@pytest.mark.django_db
 def test_only_owner_can_edit_product(category, seller, other_user):
     product = Product.objects.create(
         seller=seller,
@@ -89,11 +124,7 @@ def test_owner_can_update_price_and_add_images(category, seller):
         city="Maputo",
         status=Product.Status.ACTIVE,
     )
-    image = SimpleUploadedFile(
-        "tenis.gif",
-        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
-        content_type="image/gif",
-    )
+    image = tiny_gif("tenis.gif")
     client = APIClient()
     client.force_authenticate(seller)
 
@@ -125,21 +156,13 @@ def test_owner_can_remove_and_add_images_in_same_update(category, seller):
     images = [
         ProductImage.objects.create(
             product=product,
-            image=SimpleUploadedFile(
-                f"sapatilha-{index}.gif",
-                b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
-                content_type="image/gif",
-            ),
+            image=tiny_gif(f"sapatilha-{index}.gif"),
             position=index,
             is_primary=index == 0,
         )
         for index in range(8)
     ]
-    new_image = SimpleUploadedFile(
-        "sapatilha-nova.gif",
-        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
-        content_type="image/gif",
-    )
+    new_image = tiny_gif("sapatilha-nova.gif")
     client = APIClient()
     client.force_authenticate(seller)
 
@@ -157,6 +180,34 @@ def test_owner_can_remove_and_add_images_in_same_update(category, seller):
 
 
 @pytest.mark.django_db
+def test_owner_can_add_multiple_images_until_limit(category, seller):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="PlayStation",
+        description="Consola com jogos.",
+        price="22000.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    images = [tiny_gif(f"playstation-{index}.gif") for index in range(8)]
+    client = APIClient()
+    client.force_authenticate(seller)
+
+    response = client.patch(
+        f"/api/v1/products/{product.slug}/",
+        {"uploaded_images": images},
+        format="multipart",
+    )
+
+    assert response.status_code == 200, response.data
+    assert len(response.data["images"]) == 8
+    assert ProductImage.objects.filter(product=product).count() == 8
+
+
+@pytest.mark.django_db
 def test_owner_can_delete_product_image(category, seller):
     product = Product.objects.create(
         seller=seller,
@@ -171,11 +222,7 @@ def test_owner_can_delete_product_image(category, seller):
     )
     image = ProductImage.objects.create(
         product=product,
-        image=SimpleUploadedFile(
-            "camera.gif",
-            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
-            content_type="image/gif",
-        ),
+        image=tiny_gif("camera.gif"),
         is_primary=True,
     )
     client = APIClient()
@@ -203,11 +250,7 @@ def test_user_cannot_delete_other_seller_image(category, seller, other_user):
     )
     image = ProductImage.objects.create(
         product=product,
-        image=SimpleUploadedFile(
-            "mesa.gif",
-            b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
-            content_type="image/gif",
-        ),
+        image=tiny_gif("mesa.gif"),
         is_primary=True,
     )
     client = APIClient()

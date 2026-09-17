@@ -26,6 +26,9 @@ export type User = {
   neighborhood: string;
   account_type: string;
   verification_status: string;
+  email_verified: boolean;
+  email_verified_at?: string | null;
+  is_blocked: boolean;
   is_staff?: boolean;
   is_superuser?: boolean;
   is_active?: boolean;
@@ -48,6 +51,8 @@ export type ProductImage = {
   position: number;
   is_primary: boolean;
   moderation_status: string;
+  moderation_reason?: string;
+  created_at?: string;
 };
 
 export type Product = {
@@ -102,5 +107,43 @@ export type Message = {
   sender: User;
   content: string;
   read_at: string | null;
+  created_at: string;
+};
+
+export type Report = {
+  id: number;
+  reporter: User;
+  product: Pick<Product, "id" | "title" | "slug" | "price" | "city" | "status"> & {
+    primary_image: string | null;
+  };
+  reported_user: User;
+  reason: string;
+  description: string;
+  status: string;
+  created_at: string;
+};
+
+export type VerificationRequest = {
+  id: number;
+  full_name: string;
+  phone: string;
+  nuit: string;
+  document_type: string;
+  document_number: string;
+  status: string;
+  submitted_at: string;
+  reviewed_at: string | null;
+  rejection_reason: string;
+};
+
+export type ModerationLog = {
+  id: number;
+  actor: User | null;
+  action: string;
+  action_label: string;
+  target_type: string;
+  target_id: number;
+  target_label: string;
+  details: Record<string, unknown>;
   created_at: string;
 };

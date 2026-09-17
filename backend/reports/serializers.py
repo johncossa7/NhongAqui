@@ -4,7 +4,7 @@ from accounts.serializers import PublicUserSerializer
 from products.models import Product
 from products.serializers import ProductSummarySerializer
 
-from .models import Report
+from .models import ModerationLog, Report
 
 
 class ReportSerializer(serializers.ModelSerializer):
@@ -50,3 +50,30 @@ class ReportSerializer(serializers.ModelSerializer):
             reported_user=product.seller,
             **validated_data,
         )
+
+    def validate_product_id(self, product):
+        user = self.context["request"].user
+        if product.seller_id == user.id:
+            raise serializers.ValidationError("Nao pode denunciar o seu proprio anuncio.")
+        if Report.objects.filter(reporter=user, product=product, status=Report.Status.PENDING).exists():
+            raise serializers.ValidationError("Ja enviou uma denuncia pendente para este anuncio.")
+        return product
+
+
+class ModerationLogSerializer(serializers.ModelSerializer):
+    actor = PublicUserSerializer(read_only=True)
+    action_label = serializers.CharField(source="get_action_display", read_only=True)
+
+    class Meta:
+        model = ModerationLog
+        fields = [
+            "id",
+            "actor",
+            "action",
+            "action_label",
+            "target_type",
+            "target_id",
+            "target_label",
+            "details",
+            "created_at",
+        ]

@@ -1,12 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
+from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 
-from .models import SellerProfile
+from .emails import send_password_reset_email, send_verification_email
+from .models import SellerProfile, UserBlock
 
 User = get_user_model()
 
@@ -28,6 +29,8 @@ class SellerProfileSerializer(serializers.ModelSerializer):
 class PublicUserSerializer(serializers.ModelSerializer):
     seller_profile = SellerProfileSerializer(read_only=True)
     full_name = serializers.CharField(read_only=True)
+    email_verified = serializers.SerializerMethodField()
+    is_blocked = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -41,15 +44,27 @@ class PublicUserSerializer(serializers.ModelSerializer):
             "neighborhood",
             "account_type",
             "verification_status",
+            "email_verified",
+            "is_blocked",
             "avatar",
             "seller_profile",
         ]
+
+    def get_email_verified(self, obj) -> bool:
+        return obj.email_verified_at is not None
+
+    def get_is_blocked(self, obj) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated or request.user.pk == obj.pk:
+            return False
+        return UserBlock.objects.filter(blocker=request.user, blocked=obj).exists()
 
 
 class UserSerializer(PublicUserSerializer):
     class Meta(PublicUserSerializer.Meta):
         fields = PublicUserSerializer.Meta.fields + [
             "email",
+            "email_verified_at",
             "phone",
             "is_staff",
             "is_superuser",
@@ -58,7 +73,17 @@ class UserSerializer(PublicUserSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["email", "is_staff", "is_superuser", "is_active", "date_joined", "created_at", "updated_at"]
+        read_only_fields = [
+            "email",
+            "email_verified_at",
+            "verification_status",
+            "is_staff",
+            "is_superuser",
+            "is_active",
+            "date_joined",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -90,6 +115,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             user=user,
             display_name=display_name or user.full_name,
         )
+        send_verification_email(user)
         return user
 
 
@@ -97,7 +123,7 @@ class ProfileUpdateSerializer(UserSerializer):
     seller_profile = SellerProfileSerializer(required=False)
 
     class Meta(UserSerializer.Meta):
-        read_only_fields = ["email", "date_joined", "created_at", "updated_at"]
+        read_only_fields = UserSerializer.Meta.read_only_fields
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop("seller_profile", None)
@@ -137,15 +163,7 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         email = self.validated_data["email"]
         user = User.objects.filter(email__iexact=email, is_active=True).first()
         if user:
-            uid = serializers.CharField().to_representation(user.pk)
-            token = default_token_generator.make_token(user)
-            send_mail(
-                "Recuperacao de palavra-passe NhongAqui",
-                f"Use este uid e token para redefinir: uid={uid} token={token}",
-                "no-reply@nhongaqui.local",
-                [user.email],
-                fail_silently=True,
-            )
+            send_password_reset_email(user)
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
@@ -172,4 +190,27 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user = self.validated_data["user"]
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
+        return user
+
+
+class EmailVerificationConfirmSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    def validate(self, attrs):
+        try:
+            user_id = force_str(urlsafe_base64_decode(attrs["uid"]))
+            user = User.objects.get(pk=user_id, is_active=True)
+        except Exception as exc:
+            raise serializers.ValidationError("Link de verificacao invalido.") from exc
+        if user.email_verified_at is None and not default_token_generator.check_token(user, attrs["token"]):
+            raise serializers.ValidationError("Link de verificacao invalido ou expirado.")
+        attrs["user"] = user
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.validated_data["user"]
+        if user.email_verified_at is None:
+            user.email_verified_at = timezone.now()
+            user.save(update_fields=["email_verified_at", "updated_at"])
         return user

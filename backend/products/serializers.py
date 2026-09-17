@@ -5,8 +5,8 @@ from rest_framework import serializers
 from accounts.serializers import PublicUserSerializer
 from categories.models import Category
 from categories.serializers import CategorySerializer
-from common.moderation import MockImageModerationService
 
+from .images import prepare_product_image
 from .models import Product, ProductImage
 
 
@@ -44,7 +44,7 @@ class ProductSerializer(serializers.ModelSerializer):
     seller = PublicUserSerializer(read_only=True)
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.filter(is_active=True))
     category_detail = CategorySerializer(source="category", read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
+    images = serializers.SerializerMethodField()
     delete_image_ids = serializers.ListField(
         child=serializers.IntegerField(),
         write_only=True,
@@ -106,6 +106,20 @@ class ProductSerializer(serializers.ModelSerializer):
             return False
         return obj.favorites.filter(user=request.user).exists()
 
+    def _visible_images(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user and user.is_authenticated and (user.is_staff or user.pk == obj.seller_id):
+            return obj.images.all()
+        return obj.images.filter(moderation_status=ProductImage.ModerationStatus.APPROVED)
+
+    def get_images(self, obj):
+        return ProductImageSerializer(
+            self._visible_images(obj),
+            many=True,
+            context=self.context,
+        ).data
+
     def validate_uploaded_images(self, value):
         if len(value) > settings.MAX_PRODUCT_IMAGES:
             raise serializers.ValidationError(f"Maximo de {settings.MAX_PRODUCT_IMAGES} imagens.")
@@ -113,10 +127,21 @@ class ProductSerializer(serializers.ModelSerializer):
             delete_ids = self._delete_image_ids()
             delete_count = self.instance.images.filter(id__in=delete_ids).count()
             available = settings.MAX_PRODUCT_IMAGES - (self.instance.images.count() - delete_count)
-            if len(value) <= available:
-                return value
-            raise serializers.ValidationError(f"Pode adicionar mais {max(available, 0)} imagens.")
-        return value
+            if len(value) > available:
+                raise serializers.ValidationError(f"Pode adicionar mais {max(available, 0)} imagens.")
+        return [prepare_product_image(image) for image in value]
+
+    def validate(self, attrs):
+        uploaded_images = attrs.get("uploaded_images", [])
+        delete_ids = self._delete_image_ids()
+        if self.instance:
+            delete_count = self.instance.images.filter(id__in=delete_ids).count()
+            final_count = self.instance.images.count() - delete_count + len(uploaded_images)
+            if delete_ids and final_count < 1:
+                raise serializers.ValidationError({"delete_image_ids": "O anuncio deve manter pelo menos uma fotografia."})
+        elif not uploaded_images:
+            raise serializers.ValidationError({"uploaded_images": "Adicione pelo menos uma fotografia do produto."})
+        return attrs
 
     def _delete_image_ids(self):
         data = getattr(self, "initial_data", {}) or {}
@@ -153,17 +178,15 @@ class ProductSerializer(serializers.ModelSerializer):
         return image_ids
 
     def _save_images(self, product, uploaded_images, start_position=0):
-        moderation = MockImageModerationService()
         for offset, image in enumerate(uploaded_images[: settings.MAX_PRODUCT_IMAGES]):
-            result = moderation.moderate(image)
             position = start_position + offset
             ProductImage.objects.create(
                 product=product,
                 image=image,
                 position=position,
                 is_primary=position == 0 and not product.images.exists(),
-                moderation_status=result.status,
-                moderation_reason=result.reason,
+                moderation_status=ProductImage.ModerationStatus.PENDING,
+                moderation_reason="",
             )
 
     def _normalize_images(self, product):
@@ -229,7 +252,12 @@ class ProductSummarySerializer(serializers.ModelSerializer):
         fields = ["id", "title", "slug", "price", "city", "status", "primary_image"]
 
     def get_primary_image(self, obj):
-        image = obj.images.filter(is_primary=True).first() or obj.images.first()
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        images = obj.images.all()
+        if not (user and user.is_authenticated and (user.is_staff or user.pk == obj.seller_id)):
+            images = images.filter(moderation_status=ProductImage.ModerationStatus.APPROVED)
+        image = images.filter(is_primary=True).first() or images.first()
         if not image:
             return None
         request = self.context.get("request")

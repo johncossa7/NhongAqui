@@ -150,6 +150,12 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardResultsSetPagination",
     "PAGE_SIZE": 12,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "10/minute",
+        "register": "5/hour",
+        "password_reset": "5/hour",
+        "email_verification": "5/hour",
+    },
 }
 
 SIMPLE_JWT = {
@@ -168,6 +174,19 @@ SPECTACULAR_SETTINGS = {
 
 VERIFICATION_UPLOADS_ENABLED = env_bool("VERIFICATION_UPLOADS_ENABLED", False)
 MAX_PRODUCT_IMAGES = 8
+MAX_PRODUCT_IMAGE_SIZE = int(env("MAX_PRODUCT_IMAGE_SIZE", str(5 * 1024 * 1024)))
+MAX_PRODUCT_IMAGE_PIXELS = int(env("MAX_PRODUCT_IMAGE_PIXELS", str(24_000_000)))
+PRODUCT_IMAGE_MAX_DIMENSION = int(env("PRODUCT_IMAGE_MAX_DIMENSION", "2048"))
+PRODUCT_IMAGE_WEBP_QUALITY = int(env("PRODUCT_IMAGE_WEBP_QUALITY", "85"))
+
+WEB_APP_URL = env("WEB_APP_URL", "http://localhost:5173").rstrip("/")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "NhongAqui <no-reply@nhongaqui.local>")
+EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = env("EMAIL_HOST", "")
+EMAIL_PORT = int(env("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 
 AZURE_STORAGE_ACCOUNT_NAME = env("AZURE_STORAGE_ACCOUNT_NAME")
 AZURE_STORAGE_ACCOUNT_KEY = env("AZURE_STORAGE_ACCOUNT_KEY")

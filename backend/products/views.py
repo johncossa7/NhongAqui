@@ -7,7 +7,7 @@ from rest_framework.response import Response
 
 from common.permissions import IsSellerOrAdminOrReadOnly
 
-from .models import Product
+from .models import Product, ProductImage
 from .serializers import ProductSerializer
 
 
@@ -70,6 +70,10 @@ class ProductViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.status = Product.Status.DELETED
         instance.save(update_fields=["status", "updated_at"])
+        if self.request.user.is_staff:
+            from reports.models import ModerationLog
+
+            ModerationLog.record(self.request.user, ModerationLog.Action.PRODUCT_DELETED, instance)
 
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def mine(self, request):
@@ -100,10 +104,63 @@ class ProductViewSet(viewsets.ModelViewSet):
         image = product.images.filter(pk=image_id).first()
         if not image:
             return Response({"detail": "Imagem nao encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        if product.images.count() <= 1:
+            return Response(
+                {"detail": "O anuncio deve manter pelo menos uma fotografia."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         image.image.delete(save=False)
         image.delete()
         self._normalize_images(product)
         product.refresh_from_db()
+        return Response(self.get_serializer(product).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def suspend(self, request, slug=None):
+        product = self.get_object()
+        product.status = Product.Status.SUSPENDED
+        product.save(update_fields=["status", "updated_at"])
+        from reports.models import ModerationLog
+
+        ModerationLog.record(request.user, ModerationLog.Action.PRODUCT_SUSPENDED, product)
+        return Response(self.get_serializer(product).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def activate(self, request, slug=None):
+        product = self.get_object()
+        product.status = Product.Status.ACTIVE
+        product.published_at = product.published_at or timezone.now()
+        product.save(update_fields=["status", "published_at", "updated_at"])
+        from reports.models import ModerationLog
+
+        ModerationLog.record(request.user, ModerationLog.Action.PRODUCT_REACTIVATED, product)
+        return Response(self.get_serializer(product).data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"images/(?P<image_id>[^/.]+)/moderate",
+        permission_classes=[permissions.IsAdminUser],
+    )
+    def moderate_image(self, request, slug=None, image_id=None):
+        product = self.get_object()
+        image = product.images.filter(pk=image_id).first()
+        if not image:
+            return Response({"detail": "Imagem nao encontrada."}, status=status.HTTP_404_NOT_FOUND)
+        next_status = request.data.get("status")
+        if next_status not in [ProductImage.ModerationStatus.APPROVED, ProductImage.ModerationStatus.REJECTED]:
+            return Response({"status": "Use approved ou rejected."}, status=status.HTTP_400_BAD_REQUEST)
+        image.moderation_status = next_status
+        image.moderation_reason = str(request.data.get("reason", "")).strip()
+        image.save(update_fields=["moderation_status", "moderation_reason"])
+        from reports.models import ModerationLog
+
+        log_action = (
+            ModerationLog.Action.IMAGE_APPROVED
+            if next_status == ProductImage.ModerationStatus.APPROVED
+            else ModerationLog.Action.IMAGE_REJECTED
+        )
+        ModerationLog.record(request.user, log_action, image, {"product_id": product.pk})
         return Response(self.get_serializer(product).data)
 
     @action(detail=True, methods=["post"], permission_classes=[permissions.AllowAny])

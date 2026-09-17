@@ -43,3 +43,44 @@ class Report(models.Model):
 
     def __str__(self) -> str:
         return f"{self.reason} - {self.product}"
+
+
+class ModerationLog(models.Model):
+    class Action(models.TextChoices):
+        PRODUCT_SUSPENDED = "product_suspended", "Anuncio suspenso"
+        PRODUCT_REACTIVATED = "product_reactivated", "Anuncio reativado"
+        PRODUCT_DELETED = "product_deleted", "Anuncio eliminado"
+        IMAGE_APPROVED = "image_approved", "Imagem aprovada"
+        IMAGE_REJECTED = "image_rejected", "Imagem rejeitada"
+        USER_DEACTIVATED = "user_deactivated", "Conta desativada"
+        USER_VERIFIED = "user_verified", "Vendedor verificado"
+        REPORT_RESOLVED = "report_resolved", "Denuncia resolvida"
+        REPORT_DISMISSED = "report_dismissed", "Denuncia ignorada"
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="moderation_actions",
+    )
+    action = models.CharField(max_length=40, choices=Action.choices)
+    target_type = models.CharField(max_length=80)
+    target_id = models.PositiveBigIntegerField()
+    target_label = models.CharField(max_length=200)
+    details = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["action", "created_at"])]
+
+    @classmethod
+    def record(cls, actor, action, target, details=None):
+        return cls.objects.create(
+            actor=actor,
+            action=action,
+            target_type=target._meta.label_lower,
+            target_id=target.pk,
+            target_label=str(target)[:200],
+            details=details or {},
+        )

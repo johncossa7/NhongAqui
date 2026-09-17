@@ -5,6 +5,7 @@ from rest_framework.test import APIClient
 from accounts.models import SellerProfile
 from categories.models import Category
 from products.models import Product
+from reports.models import ModerationLog, Report
 
 User = get_user_model()
 
@@ -37,3 +38,44 @@ def test_user_can_report_product():
     )
     assert response.status_code == 201
     assert response.data["reason"] == "fraud"
+
+    duplicate = client.post(
+        "/api/v1/reports/",
+        {"product_id": product.id, "reason": "spam", "description": "Segunda denuncia."},
+        format="json",
+    )
+    assert duplicate.status_code == 400
+
+
+@pytest.mark.django_db
+def test_admin_can_resolve_report_and_action_is_logged():
+    seller = User.objects.create_user(email="seller2@example.com", password="Password123!")
+    reporter = User.objects.create_user(email="reporter2@example.com", password="Password123!")
+    admin = User.objects.create_superuser(email="admin@example.com", password="Password123!")
+    category = Category.objects.create(name="Moderacao")
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto denunciado",
+        description="Descricao.",
+        price="1000.00",
+        condition=Product.Condition.USED,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    report = Report.objects.create(
+        reporter=reporter,
+        product=product,
+        reported_user=seller,
+        reason=Report.Reason.FRAUD,
+    )
+    client = APIClient()
+    client.force_authenticate(admin)
+
+    response = client.post(f"/api/v1/reports/{report.id}/resolve/")
+
+    assert response.status_code == 200
+    report.refresh_from_db()
+    assert report.status == Report.Status.RESOLVED
+    assert ModerationLog.objects.filter(action=ModerationLog.Action.REPORT_RESOLVED, actor=admin).exists()

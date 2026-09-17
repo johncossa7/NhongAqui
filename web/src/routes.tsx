@@ -18,7 +18,8 @@ import {
   ResetPasswordPage,
   SellPage,
   SellerPage,
-  ShopPage
+  ShopPage,
+  VerifyEmailPage
 } from "./pages";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
       { path: "/registar", element: <RegisterPage /> },
       { path: "/esqueci-password", element: <ForgotPasswordPage /> },
       { path: "/redefinir-password", element: <ResetPasswordPage /> },
+      { path: "/verificar-email", element: <VerifyEmailPage /> },
       { path: "/sobre", element: <InfoPage title="Sobre" /> },
       { path: "/como-funciona", element: <InfoPage title="Como funciona" /> },
       { path: "/seguranca", element: <InfoPage title="Seguranca" /> },

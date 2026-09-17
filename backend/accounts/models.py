@@ -35,6 +35,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         choices=VerificationStatus.choices,
         default=VerificationStatus.UNVERIFIED,
     )
+    email_verified_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -81,3 +82,18 @@ class SellerProfile(models.Model):
 
     def __str__(self) -> str:
         return self.display_name
+
+
+class UserBlock(models.Model):
+    blocker = models.ForeignKey(User, on_delete=models.CASCADE, related_name="blocks_created")
+    blocked = models.ForeignKey(User, on_delete=models.CASCADE, related_name="blocks_received")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["blocker", "blocked"], name="unique_user_block"),
+        ]
+        indexes = [models.Index(fields=["blocker", "blocked"])]
+
+    def __str__(self) -> str:
+        return f"{self.blocker} bloqueou {self.blocked}"

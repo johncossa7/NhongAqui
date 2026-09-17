@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.utils import timezone
 
+from reports.models import ModerationLog
+
 from .models import Product, ProductImage
 
 
@@ -12,17 +14,42 @@ class ProductImageInline(admin.TabularInline):
 
 @admin.action(description="Suspender anuncios selecionados")
 def suspend_products(modeladmin, request, queryset):
-    queryset.update(status=Product.Status.SUSPENDED)
+    for product in queryset:
+        product.status = Product.Status.SUSPENDED
+        product.save(update_fields=["status", "updated_at"])
+        ModerationLog.record(request.user, ModerationLog.Action.PRODUCT_SUSPENDED, product)
 
 
 @admin.action(description="Reativar anuncios selecionados")
 def activate_products(modeladmin, request, queryset):
-    queryset.update(status=Product.Status.ACTIVE, published_at=timezone.now())
+    for product in queryset:
+        product.status = Product.Status.ACTIVE
+        product.published_at = product.published_at or timezone.now()
+        product.save(update_fields=["status", "published_at", "updated_at"])
+        ModerationLog.record(request.user, ModerationLog.Action.PRODUCT_REACTIVATED, product)
 
 
 @admin.action(description="Destacar anuncios selecionados")
 def feature_products(modeladmin, request, queryset):
     queryset.update(featured=True)
+
+
+@admin.action(description="Aprovar imagens selecionadas")
+def approve_images(modeladmin, request, queryset):
+    for image in queryset:
+        image.moderation_status = ProductImage.ModerationStatus.APPROVED
+        image.moderation_reason = ""
+        image.save(update_fields=["moderation_status", "moderation_reason"])
+        ModerationLog.record(request.user, ModerationLog.Action.IMAGE_APPROVED, image)
+
+
+@admin.action(description="Rejeitar imagens selecionadas")
+def reject_images(modeladmin, request, queryset):
+    for image in queryset:
+        image.moderation_status = ProductImage.ModerationStatus.REJECTED
+        image.moderation_reason = "Rejeitada pelo administrador."
+        image.save(update_fields=["moderation_status", "moderation_reason"])
+        ModerationLog.record(request.user, ModerationLog.Action.IMAGE_REJECTED, image)
 
 
 @admin.register(Product)
@@ -52,3 +79,4 @@ class ProductImageAdmin(admin.ModelAdmin):
     list_filter = ("is_primary", "moderation_status")
     search_fields = ("product__title",)
     readonly_fields = ("created_at",)
+    actions = [approve_images, reject_images]

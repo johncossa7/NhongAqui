@@ -1,21 +1,40 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from accounts.models import User
+from accounts.models import SellerProfile, User
+from reports.models import ModerationLog
 
 from .models import VerificationRequest
 
 
 @admin.action(description="Aprovar verificacoes")
 def approve_verifications(modeladmin, request, queryset):
-    queryset.update(status=VerificationRequest.Status.APPROVED, reviewed_at=timezone.now(), reviewed_by=request.user)
-    User.objects.filter(id__in=queryset.values("user_id")).update(verification_status=User.VerificationStatus.VERIFIED)
+    for verification in queryset.select_related("user"):
+        verification.status = VerificationRequest.Status.APPROVED
+        verification.reviewed_at = timezone.now()
+        verification.reviewed_by = request.user
+        verification.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+        verification.user.verification_status = User.VerificationStatus.VERIFIED
+        verification.user.save(update_fields=["verification_status", "updated_at"])
+        profile, _ = SellerProfile.objects.get_or_create(
+            user=verification.user,
+            defaults={"display_name": verification.user.full_name},
+        )
+        profile.verified = True
+        profile.save(update_fields=["verified", "updated_at"])
+        ModerationLog.record(request.user, ModerationLog.Action.USER_VERIFIED, verification.user)
 
 
 @admin.action(description="Rejeitar verificacoes")
 def reject_verifications(modeladmin, request, queryset):
-    queryset.update(status=VerificationRequest.Status.REJECTED, reviewed_at=timezone.now(), reviewed_by=request.user)
-    User.objects.filter(id__in=queryset.values("user_id")).update(verification_status=User.VerificationStatus.REJECTED)
+    for verification in queryset.select_related("user"):
+        verification.status = VerificationRequest.Status.REJECTED
+        verification.reviewed_at = timezone.now()
+        verification.reviewed_by = request.user
+        verification.save(update_fields=["status", "reviewed_at", "reviewed_by"])
+        verification.user.verification_status = User.VerificationStatus.REJECTED
+        verification.user.save(update_fields=["verification_status", "updated_at"])
+        SellerProfile.objects.filter(user=verification.user).update(verified=False)
 
 
 @admin.register(VerificationRequest)

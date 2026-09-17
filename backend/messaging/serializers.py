@@ -1,6 +1,8 @@
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
+from accounts.models import UserBlock
 from accounts.serializers import PublicUserSerializer
 from products.models import Product
 from products.serializers import ProductSummarySerializer
@@ -25,6 +27,11 @@ class MessageSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         if conversation.buyer_id != user.id and conversation.seller_id != user.id and not user.is_staff:
             raise serializers.ValidationError("Sem permissao para esta conversa.")
+        other_id = conversation.seller_id if conversation.buyer_id == user.id else conversation.buyer_id
+        if not user.is_staff and UserBlock.objects.filter(
+            Q(blocker_id=user.id, blocked_id=other_id) | Q(blocker_id=other_id, blocked_id=user.id)
+        ).exists():
+            raise serializers.ValidationError("Nao pode enviar mensagens nesta conversa.")
         return conversation
 
     def create(self, validated_data):
@@ -66,6 +73,11 @@ class ConversationSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         if product.seller_id == user.id:
             raise serializers.ValidationError("Nao pode iniciar conversa consigo proprio.")
+        if UserBlock.objects.filter(
+            Q(blocker_id=user.id, blocked_id=product.seller_id)
+            | Q(blocker_id=product.seller_id, blocked_id=user.id)
+        ).exists():
+            raise serializers.ValidationError("Nao pode contactar este vendedor.")
         return product
 
     def create(self, validated_data):

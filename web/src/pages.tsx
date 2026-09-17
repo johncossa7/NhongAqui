@@ -2,13 +2,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ArrowRight,
+  Ban,
   Camera,
+  Check,
   CheckCircle2,
+  Clock3,
   Crown,
   Flag,
   Heart,
   ImagePlus,
   MapPin,
+  Mail,
   MessageCircle,
   Package,
   Search,
@@ -17,7 +21,6 @@ import {
   Sparkles,
   Trash2,
   Upload,
-  Users,
   UserRound,
   X
 } from "lucide-react";
@@ -32,7 +35,17 @@ import { API_URL, apiRequest, normalizePage, toQuery } from "./lib/api";
 import { useAuth } from "./lib/auth";
 import { fallbackImage, productImage } from "./lib/images";
 import { setSeo } from "./lib/seo";
-import type { Category, Conversation, Favorite, Paginated, Product, User } from "./types";
+import type {
+  Category,
+  Conversation,
+  Favorite,
+  ModerationLog,
+  Paginated,
+  Product,
+  Report,
+  User,
+  VerificationRequest
+} from "./types";
 
 const conditionLabels: Record<string, string> = {
   new: "Novo",
@@ -44,7 +57,7 @@ const conditionLabels: Record<string, string> = {
 
 function Shell({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
   return (
-    <main className={`mx-auto w-full flex-1 ${narrow ? "max-w-3xl" : "max-w-[1500px]"} px-4 py-5 md:py-8 lg:px-8`}>
+    <main className={`mx-auto min-w-0 w-full flex-1 ${narrow ? "max-w-3xl" : "max-w-[1500px]"} px-4 py-5 md:py-8 lg:px-8`}>
       {children}
     </main>
   );
@@ -316,6 +329,7 @@ export function ProductPage() {
   const queryClient = useQueryClient();
   const [reportOpen, setReportOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [contactError, setContactError] = useState<string | null>(null);
   const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
   const product = useQuery({
     queryKey: ["product", slug],
@@ -361,11 +375,16 @@ export function ProductPage() {
       navigate("/login");
       return;
     }
-    const conversation = await apiRequest<Conversation>("/conversations/", {
-      method: "POST",
-      body: JSON.stringify({ product_id: product.data.id })
-    });
-    navigate(`/mensagens?conversation=${conversation.id}`);
+    setContactError(null);
+    try {
+      const conversation = await apiRequest<Conversation>("/conversations/", {
+        method: "POST",
+        body: JSON.stringify({ product_id: product.data.id })
+      });
+      navigate(`/mensagens?conversation=${conversation.id}`);
+    } catch (error) {
+      setContactError(error instanceof Error ? error.message : "Nao foi possivel contactar o vendedor.");
+    }
   }
 
   if (!product.data) {
@@ -469,6 +488,7 @@ export function ProductPage() {
             <Button variant="ghost" onClick={() => setReportOpen((value) => !value)}><Flag size={18} /> Denunciar</Button>
             <Button variant="ghost" onClick={() => setReviewOpen((value) => !value)}>Avaliar</Button>
           </div>
+          {contactError ? <p className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{contactError}</p> : null}
           {reportOpen ? <ReportForm productId={product.data.id} /> : null}
           {reviewOpen ? <ReviewForm productId={product.data.id} onDone={() => void reviews.refetch()} /> : null}
         </Card>
@@ -506,7 +526,9 @@ function ReportForm({ productId }: { productId: number }) {
         <option value="other">Outro</option>
       </Select>
       <Textarea placeholder="Descreva o problema" value={description} onChange={(event) => setDescription(event.target.value)} />
-      <Button type="submit" disabled={report.isPending}>Enviar denuncia</Button>
+      <Button type="submit" disabled={report.isPending || report.isSuccess}>{report.isSuccess ? "Denuncia enviada" : "Enviar denuncia"}</Button>
+      {report.isSuccess ? <p className="text-sm font-bold text-green-700">A equipa de moderacao recebeu a denuncia.</p> : null}
+      {report.error instanceof Error ? <p className="text-sm font-bold text-red-700">{report.error.message}</p> : null}
     </form>
   );
 }
@@ -530,7 +552,7 @@ function ReviewForm({ productId, onDone }: { productId: number; onDone: () => vo
 }
 
 const maxProductImages = 8;
-const maxImageSizeMb = 8;
+const maxImageSizeMb = 5;
 const maxImageSizeBytes = maxImageSizeMb * 1024 * 1024;
 
 const promotionPlans = [
@@ -605,7 +627,9 @@ export function SellPage() {
     const incoming = Array.from(selectedFiles ?? []);
     if (!incoming.length) return;
 
-    const accepted = incoming.filter((file) => file.type.startsWith("image/") && file.size <= maxImageSizeBytes);
+    const accepted = incoming.filter(
+      (file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type) && file.size <= maxImageSizeBytes
+    );
     const rejected = incoming.length - accepted.length;
 
     setFiles((current) => [...current, ...accepted].slice(0, maxProductImages));
@@ -688,7 +712,7 @@ export function SellPage() {
                     className="sr-only"
                     type="file"
                     multiple
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={(event) => {
                       addImages(event.target.files);
                       event.target.value = "";
@@ -908,33 +932,45 @@ export function AdminPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const products = useQuery({
-    queryKey: ["admin-products"],
+    queryKey: ["admin", "products"],
     enabled: Boolean(user?.is_staff),
     queryFn: async () => normalizePage(await apiRequest<Paginated<Product>>("/products/?page_size=48&ordering=-created_at"))
   });
   const users = useQuery({
-    queryKey: ["admin-users"],
+    queryKey: ["admin", "users"],
     enabled: Boolean(user?.is_staff),
     queryFn: async () => normalizePage(await apiRequest<Paginated<User>>("/users/?page_size=48"))
   });
-  const deleteProduct = useMutation({
-    mutationFn: (slug: string) => apiRequest(`/products/${slug}/`, { method: "DELETE" }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-products"] });
-    }
+  const reports = useQuery({
+    queryKey: ["admin", "reports"],
+    enabled: Boolean(user?.is_staff),
+    queryFn: async () => normalizePage(await apiRequest<Paginated<Report>>("/reports/?status=pending&page_size=48"))
   });
-  const deactivateUser = useMutation({
-    mutationFn: (id: number) => apiRequest(`/users/${id}/`, { method: "DELETE" }),
+  const verifications = useQuery({
+    queryKey: ["admin", "verifications"],
+    enabled: Boolean(user?.is_staff),
+    queryFn: async () => normalizePage(await apiRequest<Paginated<VerificationRequest>>("/verification/?page_size=48"))
+  });
+  const logs = useQuery({
+    queryKey: ["admin", "logs"],
+    enabled: Boolean(user?.is_staff),
+    queryFn: async () => normalizePage(await apiRequest<Paginated<ModerationLog>>("/moderation-logs/?page_size=12"))
+  });
+  const adminAction = useMutation({
+    mutationFn: ({ path, method = "POST", body }: { path: string; method?: string; body?: Record<string, unknown> }) =>
+      apiRequest(path, { method, body: body ? JSON.stringify(body) : undefined }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      await queryClient.invalidateQueries({ queryKey: ["admin"] });
     }
   });
   const activeProducts = products.data?.filter((product) => product.status === "active").length ?? 0;
-  const featuredProducts = products.data?.filter((product) => product.featured).length ?? 0;
+  const pendingImages = products.data?.flatMap((product) => product.images.filter((image) => image.moderation_status === "pending")) ?? [];
+  const pendingVerifications = verifications.data?.filter((item) => item.status === "pending") ?? [];
   const stats: { label: string; value: number; icon: LucideIcon }[] = [
     { label: "Anuncios ativos", value: activeProducts, icon: Package },
-    { label: "Anuncios destacados", value: featuredProducts, icon: Sparkles },
-    { label: "Contas visiveis", value: users.data?.length ?? 0, icon: Users }
+    { label: "Fotos por analisar", value: pendingImages.length, icon: Camera },
+    { label: "Denuncias pendentes", value: reports.data?.length ?? 0, icon: Flag },
+    { label: "Verificacoes pendentes", value: pendingVerifications.length, icon: ShieldCheck }
   ];
 
   useEffect(() => setSeo("Admin", "Painel de administracao do NhongAqui."), []);
@@ -961,8 +997,11 @@ export function AdminPage() {
         <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Painel Admin</h1>
         <p className="mt-1 text-sm text-gray-600">Gerir anuncios, contas e atividade da plataforma.</p>
       </div>
+      {adminAction.error instanceof Error ? (
+        <p className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{adminAction.error.message}</p>
+      ) : null}
 
-      <div className="mb-6 grid gap-3 md:grid-cols-3">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map(({ label, value, icon: Icon }) => (
           <Card key={label} className="flex items-center gap-3 p-4 shadow-soft">
             <span className="flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
@@ -975,6 +1014,57 @@ export function AdminPage() {
           </Card>
         ))}
       </div>
+
+      <section className="mb-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-xl font-black text-gray-950">Fotografias por analisar</h2>
+          <span className="text-sm font-bold text-gray-500">{pendingImages.length} pendentes</span>
+        </div>
+        {pendingImages.length ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(products.data ?? []).flatMap((product) =>
+              product.images
+                .filter((image) => image.moderation_status === "pending")
+                .map((image) => (
+                  <Card key={image.id} className="overflow-hidden shadow-soft">
+                    <img className="aspect-[4/3] w-full object-cover" src={image.image} alt={product.title} />
+                    <div className="p-3">
+                      <p className="truncate font-black text-gray-950">{product.title}</p>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button
+                          className="px-3"
+                          disabled={adminAction.isPending}
+                          onClick={() => void adminAction.mutate({
+                            path: `/products/${product.slug}/images/${image.id}/moderate/`,
+                            body: { status: "approved" }
+                          })}
+                        >
+                          <Check size={16} /> Aprovar
+                        </Button>
+                        <Button
+                          className="px-3"
+                          variant="danger"
+                          disabled={adminAction.isPending}
+                          onClick={() => {
+                            const reason = window.prompt("Motivo da rejeicao:", "A fotografia nao corresponde ao produto.");
+                            if (reason) void adminAction.mutate({
+                              path: `/products/${product.slug}/images/${image.id}/moderate/`,
+                              body: { status: "rejected", reason }
+                            });
+                          }}
+                        >
+                          <X size={16} /> Rejeitar
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+            )}
+          </div>
+        ) : (
+          <p className="rounded-md border border-gray-200 bg-white p-4 text-sm text-gray-500">Nao existem fotografias pendentes.</p>
+        )}
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
         <Card className="overflow-hidden shadow-soft">
@@ -996,19 +1086,29 @@ export function AdminPage() {
                       <span className="font-bold text-gray-700">{product.status}</span>
                     </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    disabled={deleteProduct.isPending}
-                    onClick={() => {
-                      if (window.confirm(`Apagar o anuncio "${product.title}"?`)) {
-                        void deleteProduct.mutate(product.slug);
-                      }
-                    }}
-                  >
-                    <Trash2 size={17} />
-                    Apagar
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={adminAction.isPending}
+                      onClick={() => void adminAction.mutate({ path: `/products/${product.slug}/${product.status === "suspended" ? "activate" : "suspend"}/` })}
+                    >
+                      {product.status === "suspended" ? <Check size={17} /> : <Ban size={17} />}
+                      {product.status === "suspended" ? "Reativar" : "Suspender"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      disabled={adminAction.isPending}
+                      onClick={() => {
+                        if (window.confirm(`Apagar o anuncio "${product.title}"?`)) {
+                          void adminAction.mutate({ path: `/products/${product.slug}/`, method: "DELETE" });
+                        }
+                      }}
+                    >
+                      <Trash2 size={17} /> Apagar
+                    </Button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -1033,19 +1133,30 @@ export function AdminPage() {
                     <p className="text-sm text-gray-500">{account.email ?? "Sem email visivel"}</p>
                     <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-brand-700">{account.is_staff ? "Admin" : account.account_type}</p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    disabled={deactivateUser.isPending || account.id === user.id}
-                    onClick={() => {
-                      if (window.confirm(`Desativar a conta "${account.full_name}"?`)) {
-                        void deactivateUser.mutate(account.id);
-                      }
-                    }}
-                  >
-                    <Trash2 size={17} />
-                    Desativar
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    {account.verification_status !== "verified" ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={adminAction.isPending}
+                        onClick={() => void adminAction.mutate({ path: `/users/${account.id}/verify/` })}
+                      >
+                        <ShieldCheck size={17} /> Verificar
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="danger"
+                      disabled={adminAction.isPending || account.id === user.id}
+                      onClick={() => {
+                        if (window.confirm(`Desativar a conta "${account.full_name}"?`)) {
+                          void adminAction.mutate({ path: `/users/${account.id}/`, method: "DELETE" });
+                        }
+                      }}
+                    >
+                      <Trash2 size={17} /> Desativar
+                    </Button>
+                  </div>
                 </div>
               ))
             ) : (
@@ -1054,6 +1165,65 @@ export function AdminPage() {
           </div>
         </Card>
       </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <Card className="overflow-hidden shadow-soft">
+          <div className="border-b border-gray-200 p-4"><h2 className="text-xl font-black text-gray-950">Denuncias pendentes</h2></div>
+          <div className="divide-y divide-gray-100">
+            {(reports.data ?? []).map((report) => (
+              <div key={report.id} className="p-4">
+                <Link to={`/produto/${report.product.slug}`} className="font-black text-gray-950 hover:text-brand-700">{report.product.title}</Link>
+                <p className="mt-1 text-sm font-bold text-red-700">{report.reason}</p>
+                <p className="mt-1 text-sm text-gray-600">{report.description || "Sem detalhes adicionais."}</p>
+                <div className="mt-3 flex gap-2">
+                  <Button disabled={adminAction.isPending} onClick={() => void adminAction.mutate({ path: `/reports/${report.id}/resolve/` })}><Check size={16} /> Resolver</Button>
+                  <Button variant="secondary" disabled={adminAction.isPending} onClick={() => void adminAction.mutate({ path: `/reports/${report.id}/dismiss/` })}>Ignorar</Button>
+                </div>
+              </div>
+            ))}
+            {!reports.data?.length ? <p className="p-4 text-sm text-gray-500">Sem denuncias pendentes.</p> : null}
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden shadow-soft">
+          <div className="border-b border-gray-200 p-4"><h2 className="text-xl font-black text-gray-950">Pedidos de verificacao</h2></div>
+          <div className="divide-y divide-gray-100">
+            {pendingVerifications.map((verification) => (
+              <div key={verification.id} className="p-4">
+                <p className="font-black text-gray-950">{verification.full_name}</p>
+                <p className="text-sm text-gray-500">{verification.document_type.toUpperCase()} {verification.document_number} - {verification.phone}</p>
+                <div className="mt-3 flex gap-2">
+                  <Button disabled={adminAction.isPending} onClick={() => void adminAction.mutate({ path: `/verification/${verification.id}/approve/` })}><ShieldCheck size={16} /> Aprovar</Button>
+                  <Button
+                    variant="danger"
+                    disabled={adminAction.isPending}
+                    onClick={() => {
+                      const reason = window.prompt("Motivo da rejeicao:");
+                      if (reason) void adminAction.mutate({ path: `/verification/${verification.id}/reject/`, body: { reason } });
+                    }}
+                  >
+                    Rejeitar
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {!pendingVerifications.length ? <p className="p-4 text-sm text-gray-500">Sem pedidos pendentes.</p> : null}
+          </div>
+        </Card>
+      </div>
+
+      <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-soft">
+        <h2 className="text-xl font-black text-gray-950">Historico de moderacao</h2>
+        <div className="mt-3 divide-y divide-gray-100">
+          {(logs.data ?? []).map((log) => (
+            <div key={log.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+              <span><strong>{log.action_label}</strong> - {log.target_label}</span>
+              <span className="text-gray-500">{log.actor?.full_name ?? "Sistema"} - {new Date(log.created_at).toLocaleString("pt-MZ")}</span>
+            </div>
+          ))}
+          {!logs.data?.length ? <p className="py-3 text-sm text-gray-500">Ainda sem acoes registadas.</p> : null}
+        </div>
+      </section>
     </Shell>
   );
 }
@@ -1102,6 +1272,7 @@ export function MessagesPage() {
                 <Input value={content} onChange={(event) => setContent(event.target.value)} placeholder="Escreva uma mensagem" />
                 <Button type="submit"><MessageCircle size={18} /></Button>
               </form>
+              {send.error instanceof Error ? <p className="mt-2 text-sm font-bold text-red-700">{send.error.message}</p> : null}
             </>
           ) : (
             <EmptyState title="Sem conversas" text="Contacte um vendedor a partir de um anuncio." />
@@ -1113,12 +1284,30 @@ export function MessagesPage() {
 }
 
 export function ProfilePage() {
-  const { refreshMe, logout } = useAuth();
+  const { user, refreshMe, logout } = useAuth();
   const queryClient = useQueryClient();
   const profile = useQuery({ queryKey: ["profile"], queryFn: () => apiRequest<User>("/profile/") });
+  const verification = useQuery({
+    queryKey: ["verification", "mine"],
+    queryFn: async () => normalizePage(await apiRequest<Paginated<VerificationRequest>>("/verification/"))
+  });
   const [form, setForm] = useState<Partial<User>>({});
+  const [verificationForm, setVerificationForm] = useState({
+    full_name: "",
+    phone: "",
+    nuit: "",
+    document_type: "bi",
+    document_number: ""
+  });
   useEffect(() => {
-    if (profile.data) setForm(profile.data);
+    if (profile.data) {
+      setForm(profile.data);
+      setVerificationForm((current) => ({
+        ...current,
+        full_name: current.full_name || profile.data.full_name,
+        phone: current.phone || profile.data.phone || ""
+      }));
+    }
   }, [profile.data]);
   const save = useMutation({
     mutationFn: () => apiRequest<User>("/profile/", { method: "PATCH", body: JSON.stringify(form) }),
@@ -1127,12 +1316,44 @@ export function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ["profile"] });
     }
   });
+  const resendEmail = useMutation({
+    mutationFn: () => apiRequest("/auth/email-verification/resend/", { method: "POST" })
+  });
+  const requestVerification = useMutation({
+    mutationFn: () => apiRequest<VerificationRequest>("/verification/", {
+      method: "POST",
+      body: JSON.stringify(verificationForm)
+    }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["verification", "mine"] });
+      await refreshMe();
+    }
+  });
+  const latestVerification = verification.data?.[0];
   return (
     <Shell narrow>
       <div className="mb-5 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Perfil</h1>
         <Button variant="secondary" onClick={() => void logout()}>Sair</Button>
       </div>
+      {!user?.email_verified ? (
+        <div className="mb-5 flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <Mail className="mt-0.5 text-amber-700" size={20} />
+            <div>
+              <p className="font-black text-amber-950">Confirme o seu email</p>
+              <p className="text-sm text-amber-800">Use o link enviado para {user?.email}.</p>
+            </div>
+          </div>
+          <Button variant="secondary" disabled={resendEmail.isPending || resendEmail.isSuccess} onClick={() => void resendEmail.mutate()}>
+            {resendEmail.isSuccess ? "Link enviado" : "Reenviar link"}
+          </Button>
+        </div>
+      ) : (
+        <div className="mb-5 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">
+          <CheckCircle2 size={18} /> Email confirmado
+        </div>
+      )}
       <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void save.mutate(); }}>
         <div className="grid grid-cols-2 gap-3">
           <Input placeholder="Nome" value={form.first_name ?? ""} onChange={(event) => setForm({ ...form, first_name: event.target.value })} />
@@ -1146,6 +1367,36 @@ export function ProfilePage() {
         <Input placeholder="Bairro" value={form.neighborhood ?? ""} onChange={(event) => setForm({ ...form, neighborhood: event.target.value })} />
         <Button type="submit">Guardar</Button>
       </form>
+      <section className="mt-7 border-t border-gray-200 pt-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-black text-gray-950">Verificacao de vendedor</h2>
+            <p className="mt-1 text-sm text-gray-600">Solicite o selo de vendedor verificado para aumentar a confianca.</p>
+          </div>
+          <VerifiedBadge verified={user?.verification_status === "verified"} />
+        </div>
+        {latestVerification?.status === "pending" ? (
+          <p className="mt-4 flex items-center gap-2 rounded-md bg-amber-50 p-3 text-sm font-bold text-amber-800"><Clock3 size={17} /> Pedido em analise.</p>
+        ) : user?.verification_status === "verified" ? (
+          <p className="mt-4 rounded-md bg-green-50 p-3 text-sm font-bold text-green-800">A sua identidade de vendedor foi verificada.</p>
+        ) : (
+          <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => { event.preventDefault(); void requestVerification.mutate(); }}>
+            <Input required placeholder="Nome completo" value={verificationForm.full_name} onChange={(event) => setVerificationForm({ ...verificationForm, full_name: event.target.value })} />
+            <Input required placeholder="Telefone" value={verificationForm.phone} onChange={(event) => setVerificationForm({ ...verificationForm, phone: event.target.value })} />
+            <Select value={verificationForm.document_type} onChange={(event) => setVerificationForm({ ...verificationForm, document_type: event.target.value })}>
+              <option value="bi">BI</option>
+              <option value="passport">Passaporte</option>
+              <option value="dire">DIRE</option>
+              <option value="other">Outro documento</option>
+            </Select>
+            <Input required placeholder="Numero do documento" value={verificationForm.document_number} onChange={(event) => setVerificationForm({ ...verificationForm, document_number: event.target.value })} />
+            <Input placeholder="NUIT (opcional)" value={verificationForm.nuit} onChange={(event) => setVerificationForm({ ...verificationForm, nuit: event.target.value })} />
+            <Button type="submit" disabled={requestVerification.isPending}><ShieldCheck size={17} /> Pedir verificacao</Button>
+            {requestVerification.error instanceof Error ? <p className="text-sm font-bold text-red-700 sm:col-span-2">{requestVerification.error.message}</p> : null}
+            {latestVerification?.status === "rejected" ? <p className="text-sm text-red-700 sm:col-span-2">Pedido anterior rejeitado: {latestVerification.rejection_reason}</p> : null}
+          </form>
+        )}
+      </section>
       <div className="mt-5 flex gap-3">
         <Link to="/vendas"><Button variant="secondary">Minhas vendas</Button></Link>
         <Link to="/vender"><Button>Vender agora</Button></Link>
@@ -1281,10 +1532,13 @@ function ListingEditForm({
               className="sr-only"
               type="file"
               multiple
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               disabled={!availableSlots}
               onChange={(event) => {
-                setFiles((current) => [...current, ...Array.from(event.target.files ?? [])].slice(0, maxProductImages - visibleImages.length));
+                const selected = Array.from(event.target.files ?? []).filter(
+                  (file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type) && file.size <= maxImageSizeBytes
+                );
+                setFiles((current) => [...current, ...selected].slice(0, maxProductImages - visibleImages.length));
                 event.target.value = "";
               }}
             />
@@ -1323,6 +1577,13 @@ function ListingEditForm({
               />
               {image.is_primary ? (
                 <span className="absolute left-1 top-1 rounded-full bg-accent-ink px-1.5 py-0.5 text-[10px] font-black text-white">Capa</span>
+              ) : null}
+              {image.moderation_status !== "approved" ? (
+                <span className={`absolute right-1 top-1 rounded px-1.5 py-0.5 text-[10px] font-black text-white ${
+                  image.moderation_status === "rejected" ? "bg-red-600" : "bg-amber-500"
+                }`}>
+                  {image.moderation_status === "rejected" ? "Rejeitada" : "Em analise"}
+                </span>
               ) : null}
               <button
                 className="absolute bottom-1 right-1 inline-flex min-h-8 items-center gap-1 rounded-md bg-red-600 px-2 text-xs font-black text-white shadow-soft transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1522,6 +1783,12 @@ export function MyListingsPage() {
                 <div className="mt-1 flex flex-wrap gap-2 text-sm text-gray-500">
                   <span>{product.status}</span>
                   <span>{product.images.length} foto{product.images.length === 1 ? "" : "s"}</span>
+                  {product.images.some((image) => image.moderation_status === "pending") ? (
+                    <span className="font-bold text-amber-700">Fotos em analise</span>
+                  ) : null}
+                  {product.images.some((image) => image.moderation_status === "rejected") ? (
+                    <span className="font-bold text-red-700">Foto rejeitada</span>
+                  ) : null}
                   <span>{product.city}</span>
                 </div>
                 <p className="mt-2 text-xl"><PriceDisplay value={product.price} /></p>
@@ -1550,20 +1817,32 @@ export function MyListingsPage() {
 
 export function SellerPage() {
   const { id = "" } = useParams();
+  const { user, isAuthenticated } = useAuth();
   const seller = useQuery({ queryKey: ["seller", id], queryFn: () => apiRequest<User>(`/users/${id}/`) });
   const products = useProducts({ seller: id, page_size: 8 });
+  const block = useMutation({
+    mutationFn: () => apiRequest(`/users/${id}/block/`, { method: seller.data?.is_blocked ? "DELETE" : "POST" }),
+    onSuccess: async () => seller.refetch()
+  });
   return (
     <Shell>
       <Card className="mb-6 p-5">
-        <div className="flex items-center gap-4">
-          <span className="flex size-14 items-center justify-center rounded-md bg-gray-100"><UserRound /></span>
-          <div>
-            <h1 className="text-2xl font-bold">{seller.data?.seller_profile?.display_name ?? seller.data?.full_name}</h1>
-            <div className="mt-1 flex items-center gap-2">
-              <VerifiedBadge verified={seller.data?.seller_profile?.verified} />
-              <ReviewStars rating={Number(seller.data?.seller_profile?.rating_average ?? 0)} />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="flex size-14 items-center justify-center rounded-md bg-gray-100"><UserRound /></span>
+            <div>
+              <h1 className="text-2xl font-bold">{seller.data?.seller_profile?.display_name ?? seller.data?.full_name}</h1>
+              <div className="mt-1 flex items-center gap-2">
+                <VerifiedBadge verified={seller.data?.seller_profile?.verified} />
+                <ReviewStars rating={Number(seller.data?.seller_profile?.rating_average ?? 0)} />
+              </div>
             </div>
           </div>
+          {isAuthenticated && user?.id !== seller.data?.id ? (
+            <Button variant={seller.data?.is_blocked ? "secondary" : "danger"} disabled={block.isPending} onClick={() => void block.mutate()}>
+              <Ban size={17} /> {seller.data?.is_blocked ? "Desbloquear" : "Bloquear"}
+            </Button>
+          ) : null}
         </div>
         <p className="mt-4 text-gray-700">{seller.data?.seller_profile?.bio}</p>
       </Card>
@@ -1658,8 +1937,10 @@ export function ForgotPasswordPage() {
       <Card className="p-5">
         <h1 className="mb-4 text-2xl font-bold">Recuperar palavra-passe</h1>
         <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void reset.mutate(); }}>
-          <Input type="email" placeholder="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          <Button type="submit">Enviar instrucoes</Button>
+          <Input required type="email" placeholder="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <Button type="submit" disabled={reset.isPending || reset.isSuccess}>{reset.isSuccess ? "Instrucoes enviadas" : "Enviar instrucoes"}</Button>
+          {reset.isSuccess ? <p className="text-sm font-bold text-green-700">Se a conta existir, recebera um link para escolher uma nova palavra-passe.</p> : null}
+          {reset.error instanceof Error ? <p className="text-sm font-bold text-red-700">{reset.error.message}</p> : null}
         </form>
       </Card>
     </Shell>
@@ -1667,18 +1948,63 @@ export function ForgotPasswordPage() {
 }
 
 export function ResetPasswordPage() {
-  const [form, setForm] = useState({ uid: "", token: "", new_password: "" });
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const [newPassword, setNewPassword] = useState("");
+  const uid = params.get("uid") ?? "";
+  const token = params.get("token") ?? "";
+  const form = { uid, token, new_password: newPassword };
   const reset = useMutation({ mutationFn: () => apiRequest("/auth/password-reset/confirm/", { method: "POST", body: JSON.stringify(form) }) });
   return (
     <Shell narrow>
       <Card className="p-5">
         <h1 className="mb-4 text-2xl font-bold">Redefinir palavra-passe</h1>
-        <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void reset.mutate(); }}>
-          <Input placeholder="UID" value={form.uid} onChange={(event) => setForm({ ...form, uid: event.target.value })} />
-          <Input placeholder="Token" value={form.token} onChange={(event) => setForm({ ...form, token: event.target.value })} />
-          <Input type="password" placeholder="Nova palavra-passe" value={form.new_password} onChange={(event) => setForm({ ...form, new_password: event.target.value })} />
-          <Button type="submit">Guardar nova palavra-passe</Button>
-        </form>
+        {!uid || !token ? (
+          <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">Este link e invalido. Solicite uma nova recuperacao de palavra-passe.</p>
+        ) : reset.isSuccess ? (
+          <div className="space-y-3">
+            <p className="font-bold text-green-700">A palavra-passe foi alterada.</p>
+            <Button onClick={() => navigate("/login")}>Entrar</Button>
+          </div>
+        ) : (
+          <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void reset.mutate(); }}>
+            <Input required minLength={8} autoComplete="new-password" type="password" placeholder="Nova palavra-passe" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
+            <Button type="submit" disabled={reset.isPending}>Guardar nova palavra-passe</Button>
+            {reset.error instanceof Error ? <p className="text-sm font-bold text-red-700">{reset.error.message}</p> : null}
+          </form>
+        )}
+      </Card>
+    </Shell>
+  );
+}
+
+export function VerifyEmailPage() {
+  const [params] = useSearchParams();
+  const { refreshMe } = useAuth();
+  const uid = params.get("uid") ?? "";
+  const token = params.get("token") ?? "";
+  const confirmation = useMutation({
+    mutationFn: () => apiRequest("/auth/email-verification/confirm/", {
+      method: "POST",
+      body: JSON.stringify({ uid, token })
+    }),
+    onSuccess: () => refreshMe()
+  });
+
+  useEffect(() => {
+    if (uid && token && confirmation.isIdle) void confirmation.mutate();
+  }, [uid, token, confirmation]);
+
+  return (
+    <Shell narrow>
+      <Card className="p-6 text-center shadow-soft">
+        {confirmation.isPending ? (
+          <><Clock3 className="mx-auto text-brand-600" size={34} /><h1 className="mt-3 text-2xl font-black">A confirmar email...</h1></>
+        ) : confirmation.isSuccess ? (
+          <><CheckCircle2 className="mx-auto text-green-600" size={38} /><h1 className="mt-3 text-2xl font-black">Email confirmado</h1><p className="mt-2 text-gray-600">A sua conta esta mais segura.</p><Link className="mt-5 inline-flex" to="/perfil"><Button>Voltar ao perfil</Button></Link></>
+        ) : (
+          <><AlertCircle className="mx-auto text-red-600" size={38} /><h1 className="mt-3 break-words text-xl font-black sm:text-2xl">Link invalido ou expirado</h1><p className="mt-2 break-words text-gray-600">Entre no perfil para pedir um novo link.</p></>
+        )}
       </Card>
     </Shell>
   );

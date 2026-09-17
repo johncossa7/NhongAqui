@@ -1,10 +1,18 @@
-from rest_framework import permissions, viewsets
+from django.utils import timezone
+from rest_framework import mixins, permissions, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
-from .models import Report
-from .serializers import ReportSerializer
+from .models import ModerationLog, Report
+from .serializers import ModerationLogSerializer, ReportSerializer
 
 
-class ReportViewSet(viewsets.ModelViewSet):
+class ReportViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
     serializer_class = ReportSerializer
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ("status", "reason", "product")
@@ -20,3 +28,27 @@ class ReportViewSet(viewsets.ModelViewSet):
         if self.request.user.is_staff:
             return queryset
         return queryset.filter(reporter=self.request.user)
+
+    def _finish(self, request, report, next_status, log_action):
+        report.status = next_status
+        report.resolved_at = timezone.now()
+        report.resolved_by = request.user
+        report.save(update_fields=["status", "resolved_at", "resolved_by"])
+        ModerationLog.record(request.user, log_action, report)
+        return Response(self.get_serializer(report).data)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def resolve(self, request, pk=None):
+        return self._finish(request, self.get_object(), Report.Status.RESOLVED, ModerationLog.Action.REPORT_RESOLVED)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def dismiss(self, request, pk=None):
+        return self._finish(request, self.get_object(), Report.Status.DISMISSED, ModerationLog.Action.REPORT_DISMISSED)
+
+
+class ModerationLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ModerationLog.objects.select_related("actor")
+    serializer_class = ModerationLogSerializer
+    permission_classes = [permissions.IsAdminUser]
+    filterset_fields = ("action", "target_type")
+    ordering_fields = ("created_at",)

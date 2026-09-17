@@ -1,6 +1,9 @@
+from io import BytesIO
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image
 from rest_framework.test import APIClient
 
 from accounts.models import SellerProfile
@@ -10,12 +13,10 @@ from products.models import Product, ProductImage
 User = get_user_model()
 
 
-def tiny_gif(name: str):
-    return SimpleUploadedFile(
-        name,
-        b"GIF89a\x01\x00\x01\x00\x80\x00\x00\x00\x00\x00\xff\xff\xff!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02L\x01\x00;",
-        content_type="image/gif",
-    )
+def make_test_image(name: str):
+    output = BytesIO()
+    Image.new("RGB", (64, 64), color=(25, 120, 70)).save(output, format="JPEG")
+    return SimpleUploadedFile(name, output.getvalue(), content_type="image/jpeg")
 
 
 @pytest.fixture
@@ -38,7 +39,7 @@ def other_user():
 
 
 @pytest.mark.django_db
-def test_authenticated_user_can_create_product(category, seller):
+def test_product_requires_at_least_one_image(category, seller):
     client = APIClient()
     client.force_authenticate(seller)
     response = client.post(
@@ -56,15 +57,15 @@ def test_authenticated_user_can_create_product(category, seller):
         },
         format="json",
     )
-    assert response.status_code == 201
-    assert response.data["status"] == Product.Status.ACTIVE
+    assert response.status_code == 400
+    assert "uploaded_images" in response.data
 
 
 @pytest.mark.django_db
 def test_authenticated_user_can_create_product_with_multiple_images(category, seller):
     client = APIClient()
     client.force_authenticate(seller)
-    images = [tiny_gif(f"produto-{index}.gif") for index in range(6)]
+    images = [make_test_image(f"produto-{index}.jpg") for index in range(6)]
 
     response = client.post(
         "/api/v1/products/",
@@ -85,6 +86,8 @@ def test_authenticated_user_can_create_product_with_multiple_images(category, se
     assert response.status_code == 201, response.data
     assert len(response.data["images"]) == 6
     assert response.data["images"][0]["image"].startswith("http://testserver/media/")
+    assert response.data["images"][0]["image"].endswith(".webp")
+    assert response.data["images"][0]["moderation_status"] == ProductImage.ModerationStatus.PENDING
     assert ProductImage.objects.filter(product__slug=response.data["slug"]).count() == 6
 
 
@@ -125,7 +128,7 @@ def test_owner_can_update_price_and_add_images(category, seller):
         city="Maputo",
         status=Product.Status.ACTIVE,
     )
-    image = tiny_gif("tenis.gif")
+    image = make_test_image("tenis.jpg")
     client = APIClient()
     client.force_authenticate(seller)
 
@@ -157,13 +160,13 @@ def test_owner_can_remove_and_add_images_in_same_update(category, seller):
     images = [
         ProductImage.objects.create(
             product=product,
-            image=tiny_gif(f"sapatilha-{index}.gif"),
+            image=make_test_image(f"sapatilha-{index}.jpg"),
             position=index,
             is_primary=index == 0,
         )
         for index in range(8)
     ]
-    new_image = tiny_gif("sapatilha-nova.gif")
+    new_image = make_test_image("sapatilha-nova.jpg")
     client = APIClient()
     client.force_authenticate(seller)
 
@@ -178,6 +181,7 @@ def test_owner_can_remove_and_add_images_in_same_update(category, seller):
     assert ProductImage.objects.filter(product=product).count() == 8
     assert ProductImage.objects.filter(pk=images[0].id).exists() is False
     assert product.images.order_by("position", "id").first().is_primary is True
+    assert response.data["images"][-1]["image"].endswith(".webp")
 
 
 @pytest.mark.django_db
@@ -193,7 +197,7 @@ def test_owner_can_add_multiple_images_until_limit(category, seller):
         city="Maputo",
         status=Product.Status.ACTIVE,
     )
-    images = [tiny_gif(f"playstation-{index}.gif") for index in range(8)]
+    images = [make_test_image(f"playstation-{index}.jpg") for index in range(8)]
     client = APIClient()
     client.force_authenticate(seller)
 
@@ -223,9 +227,10 @@ def test_owner_can_delete_product_image(category, seller):
     )
     image = ProductImage.objects.create(
         product=product,
-        image=tiny_gif("camera.gif"),
+        image=make_test_image("camera.jpg"),
         is_primary=True,
     )
+    ProductImage.objects.create(product=product, image=make_test_image("camera-2.jpg"), position=1)
     client = APIClient()
     client.force_authenticate(seller)
 
@@ -233,7 +238,30 @@ def test_owner_can_delete_product_image(category, seller):
 
     assert response.status_code == 200
     assert ProductImage.objects.filter(pk=image.id).exists() is False
-    assert response.data["images"] == []
+    assert len(response.data["images"]) == 1
+
+
+@pytest.mark.django_db
+def test_owner_cannot_delete_last_product_image(category, seller):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Camera unica",
+        description="Camera em bom estado.",
+        price="5000.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    image = ProductImage.objects.create(product=product, image=make_test_image("unica.jpg"), is_primary=True)
+    client = APIClient()
+    client.force_authenticate(seller)
+
+    response = client.delete(f"/api/v1/products/{product.slug}/images/{image.id}/")
+
+    assert response.status_code == 400
+    assert ProductImage.objects.filter(pk=image.id).exists()
 
 
 @pytest.mark.django_db
@@ -251,7 +279,7 @@ def test_user_cannot_delete_other_seller_image(category, seller, other_user):
     )
     image = ProductImage.objects.create(
         product=product,
-        image=tiny_gif("mesa.gif"),
+        image=make_test_image("mesa.jpg"),
         is_primary=True,
     )
     client = APIClient()
@@ -285,3 +313,40 @@ def test_admin_can_delete_any_product(category, seller):
     assert response.status_code == 204
     product.refresh_from_db()
     assert product.status == Product.Status.DELETED
+
+
+@pytest.mark.django_db
+def test_pending_images_are_private_until_admin_approves(category, seller):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Imagem moderada",
+        description="Produto com fotografia pendente.",
+        price="1000.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    image = ProductImage.objects.create(product=product, image=make_test_image("pendente.jpg"), is_primary=True)
+
+    public_response = APIClient().get(f"/api/v1/products/{product.slug}/")
+    assert public_response.status_code == 200
+    assert public_response.data["images"] == []
+
+    owner_client = APIClient()
+    owner_client.force_authenticate(seller)
+    owner_response = owner_client.get(f"/api/v1/products/{product.slug}/")
+    assert len(owner_response.data["images"]) == 1
+
+    admin = User.objects.create_superuser(email="image-admin@example.com", password="Password123!")
+    admin_client = APIClient()
+    admin_client.force_authenticate(admin)
+    approved = admin_client.post(
+        f"/api/v1/products/{product.slug}/images/{image.id}/moderate/",
+        {"status": "approved"},
+        format="json",
+    )
+    assert approved.status_code == 200
+    public_response = APIClient().get(f"/api/v1/products/{product.slug}/")
+    assert len(public_response.data["images"]) == 1

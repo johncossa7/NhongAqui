@@ -2,7 +2,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
-from accounts.models import SellerProfile
+from accounts.models import SellerProfile, UserBlock
 from categories.models import Category
 from messaging.models import Conversation
 from products.models import Product
@@ -41,3 +41,31 @@ def test_conversation_is_unique_and_private():
     client.force_authenticate(stranger)
     response = client.get(f"/api/v1/conversations/{first.data['id']}/")
     assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_blocked_users_cannot_start_conversations():
+    seller = User.objects.create_user(email="blocked-seller@example.com", password="Password123!")
+    buyer = User.objects.create_user(email="blocked-buyer@example.com", password="Password123!")
+    SellerProfile.objects.create(user=seller, display_name="Seller")
+    SellerProfile.objects.create(user=buyer, display_name="Buyer")
+    UserBlock.objects.create(blocker=seller, blocked=buyer)
+    category = Category.objects.create(name="Bloqueios")
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto bloqueado",
+        description="Descricao.",
+        price="1000.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    client = APIClient()
+    client.force_authenticate(buyer)
+
+    response = client.post("/api/v1/conversations/", {"product_id": product.id}, format="json")
+
+    assert response.status_code == 400
+    assert Conversation.objects.count() == 0

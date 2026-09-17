@@ -36,8 +36,17 @@ class VerificationRequestSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         "Upload de documentos esta desativado nesta versao."
                     )
+        user = self.context["request"].user
+        if not self.instance and VerificationRequest.objects.filter(
+            user=user,
+            status=VerificationRequest.Status.PENDING,
+        ).exists():
+            raise serializers.ValidationError("Ja existe um pedido de verificacao pendente.")
         return attrs
 
     def create(self, validated_data):
         user = self.context["request"].user
-        return VerificationRequest.objects.create(user=user, **validated_data)
+        verification = VerificationRequest.objects.create(user=user, **validated_data)
+        user.verification_status = user.VerificationStatus.PENDING
+        user.save(update_fields=["verification_status", "updated_at"])
+        return verification

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import Report
+from .models import ModerationLog, Report
 
 
 @admin.action(description="Marcar denuncias como resolvidas")
@@ -16,3 +16,14 @@ class ReportAdmin(admin.ModelAdmin):
     search_fields = ("product__title", "reporter__email", "reported_user__email", "description")
     readonly_fields = ("created_at", "resolved_at")
     actions = [mark_resolved]
+
+
+@admin.register(ModerationLog)
+class ModerationLogAdmin(admin.ModelAdmin):
+    list_display = ("action", "target_label", "actor", "created_at")
+    list_filter = ("action", "target_type")
+    search_fields = ("target_label", "actor__email")
+    readonly_fields = ("actor", "action", "target_type", "target_id", "target_label", "details", "created_at")
+
+    def has_add_permission(self, request):
+        return False

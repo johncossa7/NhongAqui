@@ -13,7 +13,7 @@ from favorites.views import FavoriteViewSet
 from messaging.views import ConversationViewSet, MessageViewSet
 from notifications.views import NotificationViewSet
 from products.views import ProductViewSet
-from reports.views import ModerationLogViewSet, ReportViewSet
+from reports.views import ModerationLogViewSet, ReportViewSet, SupportRequestViewSet
 from reviews.views import ReviewViewSet
 from verification.views import VerificationRequestViewSet
 
@@ -28,6 +28,7 @@ router.register("notifications", NotificationViewSet, basename="notifications")
 router.register("reviews", ReviewViewSet, basename="reviews")
 router.register("reports", ReportViewSet, basename="reports")
 router.register("moderation-logs", ModerationLogViewSet, basename="moderation-logs")
+router.register("support-requests", SupportRequestViewSet, basename="support-requests")
 router.register("verification", VerificationRequestViewSet, basename="verification")
 
 

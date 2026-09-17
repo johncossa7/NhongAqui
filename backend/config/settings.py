@@ -155,6 +155,7 @@ REST_FRAMEWORK = {
         "register": "5/hour",
         "password_reset": "5/hour",
         "email_verification": "5/hour",
+        "support": "5/hour",
     },
 }
 

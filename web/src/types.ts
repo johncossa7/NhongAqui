@@ -159,3 +159,17 @@ export type ModerationLog = {
   details: Record<string, unknown>;
   created_at: string;
 };
+
+export type SupportRequest = {
+  id: number;
+  reference: string;
+  name: string;
+  email: string;
+  category: "account" | "listing" | "safety" | "privacy" | "technical" | "other";
+  subject: string;
+  message: string;
+  status: "open" | "in_progress" | "resolved";
+  created_at: string;
+  updated_at: string;
+  resolved_at: string | null;
+};

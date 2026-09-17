@@ -37,13 +37,35 @@ class UserAdmin(DjangoUserAdmin):
     )
     list_filter = ("account_type", "verification_status", "is_staff", "is_active", "city")
     search_fields = ("email", "first_name", "last_name", "phone", "city")
-    readonly_fields = ("date_joined", "created_at", "updated_at")
+    readonly_fields = (
+        "date_joined",
+        "created_at",
+        "updated_at",
+        "terms_accepted_at",
+        "terms_version",
+        "privacy_accepted_at",
+        "privacy_version",
+    )
     actions = [mark_sellers_verified]
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Dados pessoais", {"fields": ("first_name", "last_name", "phone", "avatar")}),
         ("Localizacao", {"fields": ("province", "city", "neighborhood")}),
-        ("Estado", {"fields": ("account_type", "verification_status", "email_verified_at", "is_active")}),
+        (
+            "Estado",
+            {
+                "fields": (
+                    "account_type",
+                    "verification_status",
+                    "email_verified_at",
+                    "terms_accepted_at",
+                    "terms_version",
+                    "privacy_accepted_at",
+                    "privacy_version",
+                    "is_active",
+                )
+            },
+        ),
         ("Permissoes", {"fields": ("is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Datas", {"fields": ("date_joined", "created_at", "updated_at")}),
     )

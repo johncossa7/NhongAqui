@@ -4,7 +4,7 @@ from accounts.serializers import PublicUserSerializer
 from products.models import Product
 from products.serializers import ProductSummarySerializer
 
-from .models import ModerationLog, Report
+from .models import ModerationLog, Report, SupportRequest
 
 
 class ReportSerializer(serializers.ModelSerializer):
@@ -77,3 +77,32 @@ class ModerationLogSerializer(serializers.ModelSerializer):
             "details",
             "created_at",
         ]
+
+
+class SupportRequestSerializer(serializers.ModelSerializer):
+    reference = serializers.CharField(read_only=True)
+    name = serializers.CharField(min_length=2, max_length=120)
+    subject = serializers.CharField(min_length=4, max_length=160)
+    message = serializers.CharField(min_length=20, max_length=3000)
+
+    class Meta:
+        model = SupportRequest
+        fields = [
+            "id",
+            "reference",
+            "name",
+            "email",
+            "category",
+            "subject",
+            "message",
+            "status",
+            "created_at",
+            "updated_at",
+            "resolved_at",
+        ]
+        read_only_fields = ["id", "reference", "status", "created_at", "updated_at", "resolved_at"]
+
+    def create(self, validated_data):
+        request = self.context["request"]
+        user = request.user if request.user.is_authenticated else None
+        return SupportRequest.objects.create(user=user, **validated_data)

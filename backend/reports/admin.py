@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils import timezone
 
-from .models import ModerationLog, Report
+from .models import ModerationLog, Report, SupportRequest
 
 
 @admin.action(description="Marcar denuncias como resolvidas")
@@ -27,3 +27,15 @@ class ModerationLogAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(SupportRequest)
+class SupportRequestAdmin(admin.ModelAdmin):
+    list_display = ("reference", "subject", "category", "email", "status", "created_at")
+    list_filter = ("status", "category")
+    search_fields = ("name", "email", "subject", "message")
+    readonly_fields = ("user", "name", "email", "category", "subject", "message", "created_at", "updated_at")
+
+    @admin.display(description="Referencia")
+    def reference(self, obj):
+        return obj.reference

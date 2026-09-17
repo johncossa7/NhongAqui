@@ -46,6 +46,7 @@ import type {
   Paginated,
   Product,
   Report,
+  SupportRequest,
   User,
   VerificationRequest
 } from "./types";
@@ -887,7 +888,7 @@ export function SellPage() {
             {create.isPending ? "A publicar..." : "Publicar anuncio"}
           </Button>
           <p className="text-center text-xs text-gray-500">
-            Ao publicar, confirma que o produto e as fotografias respeitam as regras do NhongAqui.
+            Ao publicar, confirma que o produto e as fotografias respeitam a <Link className="font-bold text-brand-700 hover:underline" to="/politica-de-anuncios" target="_blank">Política de Anúncios</Link> do NhongAqui.
           </p>
         </aside>
       </form>
@@ -949,6 +950,11 @@ export function AdminPage() {
     enabled: Boolean(user?.is_staff),
     queryFn: async () => normalizePage(await apiRequest<Paginated<Report>>("/reports/?status=pending&page_size=48"))
   });
+  const supportRequests = useQuery({
+    queryKey: ["admin", "support"],
+    enabled: Boolean(user?.is_staff),
+    queryFn: async () => normalizePage(await apiRequest<Paginated<SupportRequest>>("/support-requests/?status=open&page_size=48"))
+  });
   const verifications = useQuery({
     queryKey: ["admin", "verifications"],
     enabled: Boolean(user?.is_staff),
@@ -973,7 +979,8 @@ export function AdminPage() {
     { label: "Anuncios ativos", value: activeProducts, icon: Package },
     { label: "Fotos por analisar", value: pendingImages.length, icon: Camera },
     { label: "Denuncias pendentes", value: reports.data?.length ?? 0, icon: Flag },
-    { label: "Verificacoes pendentes", value: pendingVerifications.length, icon: ShieldCheck }
+    { label: "Verificacoes pendentes", value: pendingVerifications.length, icon: ShieldCheck },
+    { label: "Pedidos de suporte", value: supportRequests.data?.length ?? 0, icon: Mail }
   ];
 
   useEffect(() => setSeo("Admin", "Painel de administracao do NhongAqui."), []);
@@ -1004,7 +1011,7 @@ export function AdminPage() {
         <p className="mb-5 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{adminAction.error.message}</p>
       ) : null}
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {stats.map(({ label, value, icon: Icon }) => (
           <Card key={label} className="flex items-center gap-3 p-4 shadow-soft">
             <span className="flex size-11 items-center justify-center rounded-full bg-brand-600 text-white">
@@ -1214,6 +1221,32 @@ export function AdminPage() {
           </div>
         </Card>
       </div>
+
+      <section className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-soft">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-200 p-4">
+          <h2 className="text-xl font-black text-gray-950">Pedidos de suporte</h2>
+          <span className="text-sm font-bold text-gray-500">{supportRequests.data?.length ?? 0} abertos</span>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {(supportRequests.data ?? []).map((request) => (
+            <div key={request.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-center">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-black text-gray-950">{request.reference}</span>
+                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-bold text-gray-600">{request.category}</span>
+                </div>
+                <p className="mt-1 font-bold text-gray-800">{request.subject}</p>
+                <p className="mt-1 text-sm text-gray-600">{request.message}</p>
+                <p className="mt-2 text-xs text-gray-500">{request.name} · {request.email} · {new Date(request.created_at).toLocaleString("pt-MZ")}</p>
+              </div>
+              <Button disabled={adminAction.isPending} onClick={() => void adminAction.mutate({ path: `/support-requests/${request.id}/resolve/` })}>
+                <Check size={16} /> Resolver
+              </Button>
+            </div>
+          ))}
+          {!supportRequests.data?.length ? <p className="p-4 text-sm text-gray-500">Sem pedidos de suporte abertos.</p> : null}
+        </div>
+      </section>
 
       <section className="mt-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-soft">
         <h2 className="text-xl font-black text-gray-950">Historico de moderacao</h2>
@@ -1972,8 +2005,11 @@ function AuthBox({ mode }: { mode: "login" | "register" }) {
     phone: "",
     city: "Maputo"
   });
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const submit = useMutation({
-    mutationFn: () => mode === "login" ? auth.login(form.email, form.password) : auth.register(form),
+    mutationFn: () => mode === "login"
+      ? auth.login(form.email, form.password)
+      : auth.register({ ...form, accept_terms: legalAccepted, accept_privacy: legalAccepted }),
     onSuccess: () => navigate("/perfil")
   });
   const errorMessage = submit.error instanceof Error ? submit.error.message : null;
@@ -1987,6 +2023,20 @@ function AuthBox({ mode }: { mode: "login" | "register" }) {
               <Input required autoComplete="given-name" placeholder="Nome" value={form.first_name} onChange={(event) => setForm({ ...form, first_name: event.target.value })} />
               <Input required autoComplete="family-name" placeholder="Apelido" value={form.last_name} onChange={(event) => setForm({ ...form, last_name: event.target.value })} />
             </div>
+          ) : null}
+          {mode === "register" ? (
+            <label className="flex items-start gap-3 rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-700">
+              <input
+                className="mt-1 size-4 shrink-0 accent-brand-700"
+                type="checkbox"
+                required
+                checked={legalAccepted}
+                onChange={(event) => setLegalAccepted(event.target.checked)}
+              />
+              <span>
+                Li e aceito os <Link className="font-bold text-brand-700 hover:underline" to="/termos" target="_blank">Termos e Condições</Link> e a <Link className="font-bold text-brand-700 hover:underline" to="/privacidade" target="_blank">Política de Privacidade</Link>.
+              </span>
+            </label>
           ) : null}
           <Input required autoComplete="email" type="email" placeholder="Email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
           <div>
@@ -2017,7 +2067,7 @@ function AuthBox({ mode }: { mode: "login" | "register" }) {
               <span>{errorMessage}</span>
             </div>
           ) : null}
-          <Button className="w-full" type="submit" disabled={submit.isPending}>
+          <Button className="w-full" type="submit" disabled={submit.isPending || (mode === "register" && !legalAccepted)}>
             {submit.isPending ? (mode === "login" ? "A entrar..." : "A registar...") : (mode === "login" ? "Entrar" : "Registar")}
           </Button>
         </form>

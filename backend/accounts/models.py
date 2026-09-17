@@ -36,6 +36,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         default=VerificationStatus.UNVERIFIED,
     )
     email_verified_at = models.DateTimeField(null=True, blank=True)
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    terms_version = models.CharField(max_length=20, blank=True)
+    privacy_accepted_at = models.DateTimeField(null=True, blank=True)
+    privacy_version = models.CharField(max_length=20, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)

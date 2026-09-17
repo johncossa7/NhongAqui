@@ -2,9 +2,10 @@ from django.utils import timezone
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
-from .models import ModerationLog, Report
-from .serializers import ModerationLogSerializer, ReportSerializer
+from .models import ModerationLog, Report, SupportRequest
+from .serializers import ModerationLogSerializer, ReportSerializer, SupportRequestSerializer
 
 
 class ReportViewSet(
@@ -52,3 +53,36 @@ class ModerationLogViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAdminUser]
     filterset_fields = ("action", "target_type")
     ordering_fields = ("created_at",)
+
+
+class SupportRequestViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    queryset = SupportRequest.objects.select_related("user", "resolved_by")
+    serializer_class = SupportRequestSerializer
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "support"
+    filterset_fields = ("status", "category")
+    ordering_fields = ("created_at",)
+
+    def get_permissions(self):
+        if self.action == "create":
+            return [permissions.AllowAny()]
+        return [permissions.IsAdminUser()]
+
+    def get_throttles(self):
+        if self.action == "create":
+            return [ScopedRateThrottle()]
+        return []
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def resolve(self, request, pk=None):
+        support_request = self.get_object()
+        support_request.status = SupportRequest.Status.RESOLVED
+        support_request.resolved_at = timezone.now()
+        support_request.resolved_by = request.user
+        support_request.save(update_fields=["status", "resolved_at", "resolved_by", "updated_at"])
+        return Response(self.get_serializer(support_request).data)

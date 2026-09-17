@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { AppLayout } from "./components/layout";
 import { getTokens } from "./lib/api";
+import { AdsPolicyPage, ContactPage, PrivacyPage, TermsPage } from "./pages/legal";
 import {
   AdminPage,
   FavoritesPage,
@@ -56,9 +57,10 @@ export const router = createBrowserRouter([
       { path: "/como-funciona", element: <InfoPage title="Como funciona" /> },
       { path: "/seguranca", element: <InfoPage title="Seguranca" /> },
       { path: "/ajuda", element: <InfoPage title="Ajuda" /> },
-      { path: "/contactos", element: <InfoPage title="Contactos" /> },
-      { path: "/termos", element: <InfoPage title="Termos e Condicoes" legal /> },
-      { path: "/privacidade", element: <InfoPage title="Politica de Privacidade" legal /> }
+      { path: "/contactos", element: <ContactPage /> },
+      { path: "/termos", element: <TermsPage /> },
+      { path: "/privacidade", element: <PrivacyPage /> },
+      { path: "/politica-de-anuncios", element: <AdsPolicyPage /> }
     ]
   }
 ]);

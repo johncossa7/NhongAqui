@@ -10,6 +10,7 @@ from .emails import send_password_reset_email, send_verification_email
 from .models import SellerProfile, UserBlock
 
 User = get_user_model()
+LEGAL_VERSION = "2026-09-17"
 
 
 class SellerProfileSerializer(serializers.ModelSerializer):
@@ -89,6 +90,8 @@ class UserSerializer(PublicUserSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
     display_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    accept_terms = serializers.BooleanField(write_only=True)
+    accept_privacy = serializers.BooleanField(write_only=True)
 
     class Meta:
         model = User
@@ -104,13 +107,35 @@ class RegisterSerializer(serializers.ModelSerializer):
             "neighborhood",
             "account_type",
             "display_name",
+            "accept_terms",
+            "accept_privacy",
         ]
         read_only_fields = ["id"]
 
+    def validate_accept_terms(self, value):
+        if not value:
+            raise serializers.ValidationError("Tem de aceitar os Termos e Condicoes.")
+        return value
+
+    def validate_accept_privacy(self, value):
+        if not value:
+            raise serializers.ValidationError("Tem de aceitar a Politica de Privacidade.")
+        return value
+
     def create(self, validated_data):
         display_name = validated_data.pop("display_name", "")
+        validated_data.pop("accept_terms")
+        validated_data.pop("accept_privacy")
         password = validated_data.pop("password")
-        user = User.objects.create_user(password=password, **validated_data)
+        accepted_at = timezone.now()
+        user = User.objects.create_user(
+            password=password,
+            terms_accepted_at=accepted_at,
+            terms_version=LEGAL_VERSION,
+            privacy_accepted_at=accepted_at,
+            privacy_version=LEGAL_VERSION,
+            **validated_data,
+        )
         SellerProfile.objects.create(
             user=user,
             display_name=display_name or user.full_name,

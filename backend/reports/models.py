@@ -84,3 +84,53 @@ class ModerationLog(models.Model):
             target_label=str(target)[:200],
             details=details or {},
         )
+
+
+class SupportRequest(models.Model):
+    class Category(models.TextChoices):
+        ACCOUNT = "account", "Conta e acesso"
+        LISTING = "listing", "Anuncio"
+        SAFETY = "safety", "Seguranca ou fraude"
+        PRIVACY = "privacy", "Privacidade e dados"
+        TECHNICAL = "technical", "Problema tecnico"
+        OTHER = "other", "Outro assunto"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Aberto"
+        IN_PROGRESS = "in_progress", "Em tratamento"
+        RESOLVED = "resolved", "Resolvido"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="support_requests",
+    )
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    category = models.CharField(max_length=24, choices=Category.choices)
+    subject = models.CharField(max_length=160)
+    message = models.TextField(max_length=3000)
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.OPEN)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="support_requests_resolved",
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=["status", "created_at"])]
+
+    @property
+    def reference(self) -> str:
+        return f"NHA-{self.pk:06d}" if self.pk else "NHA-pendente"
+
+    def __str__(self) -> str:
+        return f"{self.reference} - {self.subject}"

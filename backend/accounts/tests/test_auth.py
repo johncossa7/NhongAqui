@@ -28,11 +28,17 @@ def test_register_and_login():
             "phone": "+258840001111",
             "city": "Maputo",
             "display_name": "Ana Vendas",
+            "accept_terms": True,
+            "accept_privacy": True,
         },
         format="json",
     )
     assert register.status_code == 201
     assert register.data["email"] == "ana@example.com"
+    user = User.objects.get(email="ana@example.com")
+    assert user.terms_version == "2026-09-17"
+    assert user.privacy_version == "2026-09-17"
+    assert user.terms_accepted_at is not None
     assert len(mail.outbox) == 1
     assert "/verificar-email?" in mail.outbox[0].body
 
@@ -44,6 +50,23 @@ def test_register_and_login():
     assert login.status_code == 200
     assert "access" in login.data
     assert "refresh" in login.data
+
+
+@pytest.mark.django_db
+def test_register_requires_legal_acceptance():
+    response = APIClient().post(
+        "/api/v1/auth/register/",
+        {
+            "email": "legal@example.com",
+            "password": "StrongPass123!",
+            "accept_terms": False,
+            "accept_privacy": True,
+        },
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "accept_terms" in response.data
 
 
 @pytest.mark.django_db

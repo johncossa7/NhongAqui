@@ -5,7 +5,7 @@ from rest_framework.test import APIClient
 from accounts.models import SellerProfile
 from categories.models import Category
 from products.models import Product
-from reports.models import ModerationLog, Report
+from reports.models import ModerationLog, Report, SupportRequest
 
 User = get_user_model()
 
@@ -79,3 +79,32 @@ def test_admin_can_resolve_report_and_action_is_logged():
     report.refresh_from_db()
     assert report.status == Report.Status.RESOLVED
     assert ModerationLog.objects.filter(action=ModerationLog.Action.REPORT_RESOLVED, actor=admin).exists()
+
+
+@pytest.mark.django_db
+def test_visitor_can_contact_support_and_admin_can_resolve_request():
+    client = APIClient()
+    created = client.post(
+        "/api/v1/support-requests/",
+        {
+            "name": "Maria",
+            "email": "maria@example.com",
+            "category": "privacy",
+            "subject": "Pedido sobre os meus dados",
+            "message": "Quero saber quais dados estao associados a minha conta.",
+        },
+        format="json",
+    )
+    assert created.status_code == 201
+    assert created.data["reference"].startswith("NHA-")
+    assert client.get("/api/v1/support-requests/").status_code == 401
+
+    admin = User.objects.create_superuser(email="support-admin@example.com", password="Password123!")
+    client.force_authenticate(admin)
+    requests = client.get("/api/v1/support-requests/?status=open")
+    assert requests.status_code == 200
+    assert requests.data["count"] == 1
+
+    resolved = client.post(f"/api/v1/support-requests/{created.data['id']}/resolve/")
+    assert resolved.status_code == 200
+    assert resolved.data["status"] == SupportRequest.Status.RESOLVED

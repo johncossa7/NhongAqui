@@ -290,6 +290,7 @@ export function Footer() {
           ["Seguranca", "/seguranca"],
           ["Ajuda", "/ajuda"],
           ["Contactos", "/contactos"],
+          ["Anuncios", "/politica-de-anuncios"],
           ["Termos", "/termos"],
           ["Privacidade", "/privacidade"]
         ].map(([label, to]) => (

@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from common.permissions import IsSellerOrAdminOrReadOnly
+from notifications.models import Notification
 
 from .models import Product, ProductImage
 from .serializers import ProductSerializer
@@ -75,6 +76,22 @@ class ProductViewSet(viewsets.ModelViewSet):
 
             ModerationLog.record(self.request.user, ModerationLog.Action.PRODUCT_DELETED, instance)
 
+    def _notify_interested_buyers(self, product, kind, title, body):
+        buyer_ids = product.conversations.values_list("buyer_id", flat=True).distinct()
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    user_id=buyer_id,
+                    kind=kind,
+                    title=title,
+                    body=body,
+                    target_url=f"/produto/{product.slug}",
+                    data={"product_id": product.pk},
+                )
+                for buyer_id in buyer_ids
+            ]
+        )
+
     @action(detail=False, methods=["get"], permission_classes=[permissions.IsAuthenticated])
     def mine(self, request):
         queryset = self.filter_queryset(self.get_queryset().filter(seller=request.user))
@@ -86,16 +103,32 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def mark_reserved(self, request, slug=None):
         product = self.get_object()
+        changed = product.status != Product.Status.RESERVED
         product.status = Product.Status.RESERVED
         product.save(update_fields=["status", "updated_at"])
+        if changed:
+            self._notify_interested_buyers(
+                product,
+                Notification.Kind.PRODUCT_RESERVED,
+                "Produto reservado",
+                f"{product.title} foi marcado como reservado pelo vendedor.",
+            )
         return Response(self.get_serializer(product).data)
 
     @action(detail=True, methods=["post"])
     def mark_sold(self, request, slug=None):
         product = self.get_object()
+        changed = product.status != Product.Status.SOLD
         product.status = Product.Status.SOLD
         product.sold_at = timezone.now()
         product.save(update_fields=["status", "sold_at", "updated_at"])
+        if changed:
+            self._notify_interested_buyers(
+                product,
+                Notification.Kind.PRODUCT_SOLD,
+                "Produto vendido",
+                f"{product.title} foi marcado como vendido pelo vendedor.",
+            )
         return Response(self.get_serializer(product).data)
 
     @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>[^/.]+)")

@@ -3,8 +3,10 @@ import {
   AlertCircle,
   ArrowRight,
   Ban,
+  Bell,
   Camera,
   Check,
+  CheckCheck,
   CheckCircle2,
   Clock3,
   Crown,
@@ -40,6 +42,7 @@ import type {
   Conversation,
   Favorite,
   ModerationLog,
+  Notification,
   Paginated,
   Product,
   Report,
@@ -1229,48 +1232,87 @@ export function AdminPage() {
 }
 
 export function MessagesPage() {
+  const { user } = useAuth();
   const [params, setParams] = useSearchParams();
   const queryClient = useQueryClient();
   const [content, setContent] = useState("");
   const conversations = useQuery({
     queryKey: ["conversations"],
-    queryFn: async () => normalizePage(await apiRequest<Paginated<Conversation>>("/conversations/"))
+    queryFn: async () => normalizePage(await apiRequest<Paginated<Conversation>>("/conversations/")),
+    refetchInterval: 6_000
   });
   const selected = conversations.data?.find((item) => String(item.id) === params.get("conversation")) ?? conversations.data?.[0];
   const send = useMutation({
-    mutationFn: () => apiRequest("/messages/", { method: "POST", body: JSON.stringify({ conversation_id: selected?.id, content }) }),
+    mutationFn: () => apiRequest("/messages/", { method: "POST", body: JSON.stringify({ conversation_id: selected?.id, content: content.trim() }) }),
     onSuccess: async () => {
       setContent("");
       await queryClient.invalidateQueries({ queryKey: ["conversations"] });
     }
   });
+
+  useEffect(() => {
+    if (!selected?.id || !selected.unread_count) return;
+    void apiRequest(`/conversations/${selected.id}/mark-read/`, { method: "POST" }).then(async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+        queryClient.invalidateQueries({ queryKey: ["unread-messages"] }),
+        queryClient.invalidateQueries({ queryKey: ["notifications"] })
+      ]);
+    });
+  }, [selected?.id, selected?.unread_count, queryClient]);
+
   return (
     <Shell>
-      <h1 className="mb-5 text-2xl font-bold">Mensagens</h1>
+      <div className="mb-5">
+        <h1 className="text-3xl font-black text-gray-950">Mensagens</h1>
+        <p className="mt-1 text-sm text-gray-600">Combine detalhes, entrega e pagamento diretamente com compradores e vendedores.</p>
+      </div>
       <div className="grid min-h-[520px] gap-4 lg:grid-cols-[320px_1fr]">
         <aside className="space-y-2">
           {(conversations.data ?? []).map((conversation) => (
-            <button key={conversation.id} className="w-full rounded-2xl border border-gray-200 bg-white p-3 text-left shadow-soft transition hover:border-brand-300" onClick={() => setParams({ conversation: String(conversation.id) })}>
-              <span className="block font-semibold">{conversation.product.title}</span>
-              <span className="text-sm text-gray-500">{conversation.messages.at(-1)?.content ?? "Sem mensagens ainda"}</span>
+            <button
+              key={conversation.id}
+              className={`w-full rounded-md border p-3 text-left shadow-soft transition ${selected?.id === conversation.id ? "border-brand-600 bg-brand-50" : "border-gray-200 bg-white hover:border-brand-300"}`}
+              onClick={() => setParams({ conversation: String(conversation.id) })}
+            >
+              <span className="flex items-start justify-between gap-2">
+                <span className="block min-w-0 truncate font-black text-gray-950">{conversation.product.title}</span>
+                {conversation.unread_count ? <span className="rounded-full bg-accent-red px-2 py-0.5 text-xs font-black text-white">{conversation.unread_count}</span> : null}
+              </span>
+              <span className={`mt-1 block truncate text-sm ${conversation.unread_count ? "font-bold text-gray-800" : "text-gray-500"}`}>{conversation.messages.at(-1)?.content ?? "Sem mensagens ainda"}</span>
             </button>
           ))}
         </aside>
         <Card className="flex flex-col p-4">
           {selected ? (
             <>
-              <h2 className="border-b border-gray-200 pb-3 font-semibold">{selected.product.title}</h2>
+              <div className="flex items-center justify-between gap-3 border-b border-gray-200 pb-3">
+                <div>
+                  <Link className="font-black text-gray-950 hover:text-brand-700" to={`/produto/${selected.product.slug}`}>{selected.product.title}</Link>
+                  <p className="text-xs font-bold uppercase text-gray-500">{selected.product.status}</p>
+                </div>
+                {selected.unread_count ? <span className="text-xs font-bold text-brand-700">A marcar como lidas...</span> : null}
+              </div>
               <div className="flex-1 space-y-3 overflow-auto py-4">
-                {selected.messages.map((message) => (
-                  <div key={message.id} className="rounded-2xl bg-accent-cream p-3">
-                    <p className="text-sm font-semibold">{message.sender.full_name}</p>
-                    <p>{message.content}</p>
+                {selected.messages.map((message) => {
+                  const mine = message.sender.id === user?.id;
+                  return (
+                  <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? "bg-brand-700 text-white" : "bg-accent-cream text-gray-950"}`}>
+                      <p className={`text-xs font-bold ${mine ? "text-green-100" : "text-gray-500"}`}>{mine ? "Voce" : message.sender.full_name}</p>
+                      <p className="mt-1 whitespace-pre-wrap break-words">{message.content}</p>
+                      <p className={`mt-1 text-[11px] ${mine ? "text-green-100" : "text-gray-400"}`}>
+                        {new Date(message.created_at).toLocaleString("pt-MZ", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        {mine && message.read_at ? " - Lida" : ""}
+                      </p>
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void send.mutate(); }}>
-                <Input value={content} onChange={(event) => setContent(event.target.value)} placeholder="Escreva uma mensagem" />
-                <Button type="submit"><MessageCircle size={18} /></Button>
+                <Input value={content} onChange={(event) => setContent(event.target.value)} maxLength={2000} placeholder="Escreva uma mensagem" />
+                <Button type="submit" disabled={!content.trim() || send.isPending} aria-label="Enviar mensagem"><MessageCircle size={18} /></Button>
               </form>
               {send.error instanceof Error ? <p className="mt-2 text-sm font-bold text-red-700">{send.error.message}</p> : null}
             </>
@@ -1279,6 +1321,73 @@ export function MessagesPage() {
           )}
         </Card>
       </div>
+    </Shell>
+  );
+}
+
+export function NotificationsPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const notifications = useQuery({
+    queryKey: ["notifications", "all"],
+    queryFn: async () => normalizePage(await apiRequest<Paginated<Notification>>("/notifications/?page_size=48")),
+    refetchInterval: 10_000
+  });
+  const markRead = useMutation({
+    mutationFn: (id: number) => apiRequest(`/notifications/${id}/mark-read/`, { method: "POST" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  });
+  const markAllRead = useMutation({
+    mutationFn: () => apiRequest("/notifications/mark-all-read/", { method: "POST" }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  });
+  const unread = notifications.data?.filter((item) => !item.read_at).length ?? 0;
+
+  return (
+    <Shell narrow>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-black text-gray-950">Notificacoes</h1>
+          <p className="mt-1 text-sm text-gray-600">{unread ? `${unread} por ler` : "Esta tudo em dia."}</p>
+        </div>
+        <Button variant="secondary" disabled={!unread || markAllRead.isPending} onClick={() => void markAllRead.mutate()}>
+          <CheckCheck size={18} /> Marcar todas como lidas
+        </Button>
+      </div>
+      <Card className="overflow-hidden shadow-soft">
+        <div className="divide-y divide-gray-100">
+          {(notifications.data ?? []).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`flex w-full items-start gap-3 p-4 text-left transition hover:bg-brand-50 ${item.read_at ? "bg-white" : "bg-green-50"}`}
+              onClick={async () => {
+                if (!item.read_at) await markRead.mutateAsync(item.id);
+                if (item.target_url) navigate(item.target_url);
+              }}
+            >
+              <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full ${item.read_at ? "bg-gray-100 text-gray-500" : "bg-brand-100 text-brand-700"}`}>
+                {item.kind === "new_message" ? <MessageCircle size={19} /> : <Bell size={19} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-black text-gray-950">{item.title}</span>
+                  <span className="text-xs text-gray-400">{new Date(item.created_at).toLocaleString("pt-MZ")}</span>
+                </span>
+                <span className="mt-1 block text-sm text-gray-600">{item.body}</span>
+              </span>
+              {!item.read_at ? <span className="mt-4 size-2 shrink-0 rounded-full bg-brand-600" aria-label="Nao lida" /> : null}
+            </button>
+          ))}
+          {!notifications.isLoading && !notifications.data?.length ? (
+            <div className="p-8 text-center"><Bell className="mx-auto text-gray-300" size={32} /><p className="mt-3 font-bold text-gray-600">Ainda nao tem notificacoes.</p></div>
+          ) : null}
+        </div>
+      </Card>
     </Shell>
   );
 }

@@ -4,7 +4,8 @@ from rest_framework.test import APIClient
 
 from accounts.models import SellerProfile, UserBlock
 from categories.models import Category
-from messaging.models import Conversation
+from messaging.models import Conversation, Message
+from notifications.models import Notification
 from products.models import Product
 
 User = get_user_model()
@@ -41,6 +42,48 @@ def test_conversation_is_unique_and_private():
     client.force_authenticate(stranger)
     response = client.get(f"/api/v1/conversations/{first.data['id']}/")
     assert response.status_code == 404
+
+    client.force_authenticate(buyer)
+    sent = client.post(
+        "/api/v1/messages/",
+        {"conversation_id": first.data["id"], "content": "Ainda esta disponivel?"},
+        format="json",
+    )
+    assert sent.status_code == 201
+    notification = Notification.objects.get(user=seller, kind=Notification.Kind.NEW_MESSAGE)
+    assert notification.data["message_id"] == sent.data["id"]
+
+    client.force_authenticate(seller)
+    unread = client.get("/api/v1/conversations/unread-count/")
+    assert unread.status_code == 200
+    assert unread.data["count"] == 1
+    conversations = client.get("/api/v1/conversations/")
+    assert conversations.data["results"][0]["unread_count"] == 1
+
+    marked = client.post(f"/api/v1/conversations/{first.data['id']}/mark-read/")
+    assert marked.status_code == 200
+    assert marked.data["updated"] == 1
+    assert Message.objects.get(pk=sent.data["id"]).read_at is not None
+    notification.refresh_from_db()
+    assert notification.read_at is not None
+
+
+@pytest.mark.django_db
+def test_notifications_are_private_and_can_be_marked_read():
+    owner = User.objects.create_user(email="notice-owner@example.com", password="Password123!")
+    stranger = User.objects.create_user(email="notice-stranger@example.com", password="Password123!")
+    notification = Notification.objects.create(user=owner, title="Aviso", body="Teste")
+    client = APIClient()
+    client.force_authenticate(stranger)
+    stranger_list = client.get("/api/v1/notifications/")
+    assert stranger_list.status_code == 200
+    assert stranger_list.data["count"] == 0
+    assert client.post(f"/api/v1/notifications/{notification.id}/mark-read/").status_code == 404
+
+    client.force_authenticate(owner)
+    marked = client.post(f"/api/v1/notifications/{notification.id}/mark-read/")
+    assert marked.status_code == 200
+    assert marked.data["read_at"] is not None
 
 
 @pytest.mark.django_db

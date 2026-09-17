@@ -99,6 +99,7 @@ export type Conversation = {
   buyer: User;
   seller: User;
   messages: Message[];
+  unread_count: number;
   last_message_at: string | null;
 };
 
@@ -106,6 +107,17 @@ export type Message = {
   id: number;
   sender: User;
   content: string;
+  read_at: string | null;
+  created_at: string;
+};
+
+export type Notification = {
+  id: number;
+  kind: "system" | "new_message" | "product_reserved" | "product_sold";
+  title: string;
+  body: string;
+  target_url: string;
+  data: Record<string, unknown>;
   read_at: string | null;
   created_at: string;
 };

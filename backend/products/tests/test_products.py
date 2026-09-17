@@ -8,6 +8,8 @@ from rest_framework.test import APIClient
 
 from accounts.models import SellerProfile
 from categories.models import Category
+from messaging.models import Conversation
+from notifications.models import Notification
 from products.models import Product, ProductImage
 
 User = get_user_model()
@@ -350,3 +352,32 @@ def test_pending_images_are_private_until_admin_approves(category, seller):
     assert approved.status_code == 200
     public_response = APIClient().get(f"/api/v1/products/{product.slug}/")
     assert len(public_response.data["images"]) == 1
+
+
+@pytest.mark.django_db
+def test_interested_buyers_are_notified_when_product_is_reserved_or_sold(category, seller, other_user):
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto com interessado",
+        description="Produto em negociacao.",
+        price="4500.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    Conversation.objects.create(product=product, buyer=other_user, seller=seller)
+    client = APIClient()
+    client.force_authenticate(seller)
+
+    reserved = client.post(f"/api/v1/products/{product.slug}/mark_reserved/")
+    assert reserved.status_code == 200
+    assert Notification.objects.filter(user=other_user, kind=Notification.Kind.PRODUCT_RESERVED).count() == 1
+
+    client.post(f"/api/v1/products/{product.slug}/mark_reserved/")
+    assert Notification.objects.filter(user=other_user, kind=Notification.Kind.PRODUCT_RESERVED).count() == 1
+
+    sold = client.post(f"/api/v1/products/{product.slug}/mark_sold/")
+    assert sold.status_code == 200
+    assert Notification.objects.filter(user=other_user, kind=Notification.Kind.PRODUCT_SOLD).count() == 1

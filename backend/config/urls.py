@@ -11,6 +11,7 @@ from accounts.views import ProfileView, UserViewSet
 from categories.views import CategoryViewSet
 from favorites.views import FavoriteViewSet
 from messaging.views import ConversationViewSet, MessageViewSet
+from notifications.views import NotificationViewSet
 from products.views import ProductViewSet
 from reports.views import ModerationLogViewSet, ReportViewSet
 from reviews.views import ReviewViewSet
@@ -23,6 +24,7 @@ router.register("products", ProductViewSet, basename="products")
 router.register("favorites", FavoriteViewSet, basename="favorites")
 router.register("conversations", ConversationViewSet, basename="conversations")
 router.register("messages", MessageViewSet, basename="messages")
+router.register("notifications", NotificationViewSet, basename="notifications")
 router.register("reviews", ReviewViewSet, basename="reviews")
 router.register("reports", ReportViewSet, basename="reports")
 router.register("moderation-logs", ModerationLogViewSet, basename="moderation-logs")

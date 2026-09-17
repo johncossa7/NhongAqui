@@ -1,9 +1,11 @@
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import serializers
 
 from accounts.models import UserBlock
 from accounts.serializers import PublicUserSerializer
+from notifications.models import Notification
 from products.models import Product
 from products.serializers import ProductSummarySerializer
 
@@ -34,12 +36,30 @@ class MessageSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Nao pode enviar mensagens nesta conversa.")
         return conversation
 
+    @transaction.atomic
     def create(self, validated_data):
         message = Message.objects.create(sender=self.context["request"].user, **validated_data)
         Conversation.objects.filter(pk=message.conversation_id).update(
             last_message_at=message.created_at,
             updated_at=timezone.now(),
         )
+        conversation = message.conversation
+        if message.sender_id == conversation.buyer_id:
+            recipient = conversation.seller
+        elif message.sender_id == conversation.seller_id:
+            recipient = conversation.buyer
+        else:
+            recipient = None
+        if recipient:
+            sender_name = message.sender.full_name
+            Notification.objects.create(
+                user=recipient,
+                kind=Notification.Kind.NEW_MESSAGE,
+                title=f"Nova mensagem de {sender_name}",
+                body=message.content[:240],
+                target_url=f"/mensagens?conversation={conversation.pk}",
+                data={"conversation_id": conversation.pk, "message_id": message.pk},
+            )
         return message
 
 
@@ -53,6 +73,7 @@ class ConversationSerializer(serializers.ModelSerializer):
     buyer = PublicUserSerializer(read_only=True)
     seller = PublicUserSerializer(read_only=True)
     messages = MessageSerializer(many=True, read_only=True)
+    unread_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Conversation
@@ -63,6 +84,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "buyer",
             "seller",
             "messages",
+            "unread_count",
             "created_at",
             "updated_at",
             "last_message_at",

@@ -279,7 +279,7 @@ export function MobileNav() {
 export function Footer() {
   return (
     <footer className="border-t border-accent-ink bg-accent-ink text-white">
-      <div className="mx-auto grid max-w-[1500px] gap-6 px-4 py-10 text-sm text-gray-300 md:grid-cols-[1.4fr_repeat(7,auto)] lg:px-8">
+      <div className="mx-auto grid max-w-[1500px] gap-6 px-4 py-10 text-sm text-gray-300 md:grid-cols-5 lg:grid-cols-[1.4fr_repeat(9,auto)] lg:px-8">
         <div>
           <Brand inverted />
           <p className="mt-3 text-gray-400">Encontre. Venda. Confie.</p>
@@ -292,7 +292,8 @@ export function Footer() {
           ["Contactos", "/contactos"],
           ["Anuncios", "/politica-de-anuncios"],
           ["Termos", "/termos"],
-          ["Privacidade", "/privacidade"]
+          ["Privacidade", "/privacidade"],
+          ["Eliminar conta", "/eliminar-conta"]
         ].map(([label, to]) => (
           <Link key={to} to={to} className="font-bold hover:text-white">
             {label}

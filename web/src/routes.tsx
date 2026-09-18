@@ -3,11 +3,10 @@ import type { ReactNode } from "react";
 
 import { AppLayout } from "./components/layout";
 import { getTokens } from "./lib/api";
-import { AdsPolicyPage, ContactPage, PrivacyPage, TermsPage } from "./pages/legal";
+import { AccountDeletionPage, AdsPolicyPage, ContactPage, PrivacyPage, TermsPage } from "./pages/legal";
 import {
   AdminPage,
   FavoritesPage,
-  ForgotPasswordPage,
   HomePage,
   InfoPage,
   LoginPage,
@@ -17,7 +16,6 @@ import {
   ProductPage,
   ProfilePage,
   RegisterPage,
-  ResetPasswordPage,
   SellPage,
   SellerPage,
   ShopPage
@@ -49,8 +47,8 @@ export const router = createBrowserRouter([
       { path: "/vendedor/:id", element: <SellerPage /> },
       { path: "/login", element: <LoginPage /> },
       { path: "/registar", element: <RegisterPage /> },
-      { path: "/esqueci-password", element: <ForgotPasswordPage /> },
-      { path: "/redefinir-password", element: <ResetPasswordPage /> },
+      { path: "/esqueci-password", element: <Navigate to="/contactos" replace /> },
+      { path: "/redefinir-password", element: <Navigate to="/contactos" replace /> },
       { path: "/verificar-email", element: <Navigate to="/perfil" replace /> },
       { path: "/sobre", element: <InfoPage title="Sobre" /> },
       { path: "/como-funciona", element: <InfoPage title="Como funciona" /> },
@@ -59,6 +57,7 @@ export const router = createBrowserRouter([
       { path: "/contactos", element: <ContactPage /> },
       { path: "/termos", element: <TermsPage /> },
       { path: "/privacidade", element: <PrivacyPage /> },
+      { path: "/eliminar-conta", element: <AccountDeletionPage /> },
       { path: "/politica-de-anuncios", element: <AdsPolicyPage /> }
     ]
   }

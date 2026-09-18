@@ -213,7 +213,7 @@ export function HomePage() {
             Ver mais
           </Link>
         </div>
-        {recent.data?.length ? <ProductGrid products={recent.data} /> : <EmptyState title="Sem produtos ainda" text="Depois de correr o seed, os anuncios aparecem aqui." />}
+        {recent.data?.length ? <ProductGrid products={recent.data} /> : <EmptyState title="Sem produtos ainda" text="Seja o primeiro a publicar um anuncio no NhongAqui." />}
       </section>
     </Shell>
   );
@@ -1443,6 +1443,11 @@ export function ProfilePage() {
     document_type: "bi",
     document_number: ""
   });
+  const [passwordForm, setPasswordForm] = useState({
+    old_password: "",
+    new_password: "",
+    confirm_password: ""
+  });
   useEffect(() => {
     if (profile.data) {
       setForm(profile.data);
@@ -1469,6 +1474,16 @@ export function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ["verification", "mine"] });
       await refreshMe();
     }
+  });
+  const changePassword = useMutation({
+    mutationFn: () => apiRequest("/auth/password-change/", {
+      method: "POST",
+      body: JSON.stringify({
+        old_password: passwordForm.old_password,
+        new_password: passwordForm.new_password
+      })
+    }),
+    onSuccess: () => setPasswordForm({ old_password: "", new_password: "", confirm_password: "" })
   });
   const latestVerification = verification.data?.[0];
   return (
@@ -1519,6 +1534,62 @@ export function ProfilePage() {
             {latestVerification?.status === "rejected" ? <p className="text-sm text-red-700 sm:col-span-2">Pedido anterior rejeitado: {latestVerification.rejection_reason}</p> : null}
           </form>
         )}
+      </section>
+      <section className="mt-7 border-t border-gray-200 pt-6">
+        <h2 className="text-xl font-black text-gray-950">Seguranca da conta</h2>
+        <p className="mt-1 text-sm text-gray-600">Altere a palavra-passe enquanto tem a sessao iniciada.</p>
+        <form
+          className="mt-4 grid gap-3 sm:grid-cols-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (passwordForm.new_password === passwordForm.confirm_password) void changePassword.mutate();
+          }}
+        >
+          <Input
+            className="sm:col-span-2"
+            required
+            autoComplete="current-password"
+            type="password"
+            placeholder="Palavra-passe atual"
+            value={passwordForm.old_password}
+            onChange={(event) => setPasswordForm({ ...passwordForm, old_password: event.target.value })}
+          />
+          <Input
+            required
+            minLength={8}
+            autoComplete="new-password"
+            type="password"
+            placeholder="Nova palavra-passe"
+            value={passwordForm.new_password}
+            onChange={(event) => setPasswordForm({ ...passwordForm, new_password: event.target.value })}
+          />
+          <Input
+            required
+            minLength={8}
+            autoComplete="new-password"
+            type="password"
+            placeholder="Confirmar nova palavra-passe"
+            value={passwordForm.confirm_password}
+            onChange={(event) => setPasswordForm({ ...passwordForm, confirm_password: event.target.value })}
+          />
+          {passwordForm.confirm_password && passwordForm.new_password !== passwordForm.confirm_password ? (
+            <p className="text-sm font-bold text-red-700 sm:col-span-2">As novas palavras-passe nao coincidem.</p>
+          ) : null}
+          {changePassword.isSuccess ? (
+            <p className="flex items-center gap-2 text-sm font-bold text-green-700 sm:col-span-2"><CheckCircle2 size={17} /> Palavra-passe alterada.</p>
+          ) : null}
+          {changePassword.error instanceof Error ? <p className="text-sm font-bold text-red-700 sm:col-span-2">{changePassword.error.message}</p> : null}
+          <Button type="submit" disabled={changePassword.isPending || passwordForm.new_password !== passwordForm.confirm_password}>Alterar palavra-passe</Button>
+        </form>
+      </section>
+      <section className="mt-7 border-t border-gray-200 pt-6">
+        <h2 className="text-xl font-black text-gray-950">Conta e privacidade</h2>
+        <p className="mt-1 text-sm text-gray-600">Consulte as regras do servico e controle os dados associados a sua conta.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link to="/termos"><Button variant="secondary">Termos</Button></Link>
+          <Link to="/privacidade"><Button variant="secondary">Privacidade</Button></Link>
+          <Link to="/eliminar-conta"><Button variant="danger"><Trash2 size={17} /> Eliminar conta</Button></Link>
+        </div>
       </section>
       <div className="mt-5 flex gap-3">
         <Link to="/vendas"><Button variant="secondary">Minhas vendas</Button></Link>
@@ -2054,7 +2125,6 @@ function AuthBox({ mode }: { mode: "login" | "register" }) {
         </form>
         <div className="mt-4 text-sm text-gray-600">
           {mode === "login" ? <Link to="/registar" className="font-semibold text-brand-600">Criar conta</Link> : <Link to="/login" className="font-semibold text-brand-600">Ja tenho conta</Link>}
-          <Link to="/esqueci-password" className="ml-4 text-gray-500">Esqueci a password</Link>
         </div>
       </Card>
     </Shell>
@@ -2067,55 +2137,6 @@ export function LoginPage() {
 
 export function RegisterPage() {
   return <AuthBox mode="register" />;
-}
-
-export function ForgotPasswordPage() {
-  const [email, setEmail] = useState("");
-  const reset = useMutation({ mutationFn: () => apiRequest("/auth/password-reset/", { method: "POST", body: JSON.stringify({ email }) }) });
-  return (
-    <Shell narrow>
-      <Card className="p-5">
-        <h1 className="mb-4 text-2xl font-bold">Recuperar palavra-passe</h1>
-        <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void reset.mutate(); }}>
-          <Input required type="email" placeholder="Email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          <Button type="submit" disabled={reset.isPending || reset.isSuccess}>{reset.isSuccess ? "Instrucoes enviadas" : "Enviar instrucoes"}</Button>
-          {reset.isSuccess ? <p className="text-sm font-bold text-green-700">Se a conta existir, recebera um link para escolher uma nova palavra-passe.</p> : null}
-          {reset.error instanceof Error ? <p className="text-sm font-bold text-red-700">{reset.error.message}</p> : null}
-        </form>
-      </Card>
-    </Shell>
-  );
-}
-
-export function ResetPasswordPage() {
-  const [params] = useSearchParams();
-  const navigate = useNavigate();
-  const [newPassword, setNewPassword] = useState("");
-  const uid = params.get("uid") ?? "";
-  const token = params.get("token") ?? "";
-  const form = { uid, token, new_password: newPassword };
-  const reset = useMutation({ mutationFn: () => apiRequest("/auth/password-reset/confirm/", { method: "POST", body: JSON.stringify(form) }) });
-  return (
-    <Shell narrow>
-      <Card className="p-5">
-        <h1 className="mb-4 text-2xl font-bold">Redefinir palavra-passe</h1>
-        {!uid || !token ? (
-          <p className="rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">Este link e invalido. Solicite uma nova recuperacao de palavra-passe.</p>
-        ) : reset.isSuccess ? (
-          <div className="space-y-3">
-            <p className="font-bold text-green-700">A palavra-passe foi alterada.</p>
-            <Button onClick={() => navigate("/login")}>Entrar</Button>
-          </div>
-        ) : (
-          <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void reset.mutate(); }}>
-            <Input required minLength={8} autoComplete="new-password" type="password" placeholder="Nova palavra-passe" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} />
-            <Button type="submit" disabled={reset.isPending}>Guardar nova palavra-passe</Button>
-            {reset.error instanceof Error ? <p className="text-sm font-bold text-red-700">{reset.error.message}</p> : null}
-          </form>
-        )}
-      </Card>
-    </Shell>
-  );
 }
 
 export function InfoPage({ title, legal = false }: { title: string; legal?: boolean }) {

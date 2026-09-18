@@ -15,6 +15,7 @@ Security rules for the MVP:
 Before public launch:
 
 - Add production rate limiting at the gateway or app layer.
-- Configure private Azure Blob containers for identity documents.
+- Keep identity-document uploads disabled until private object storage and a retention policy are configured.
 - Review legal text with counsel.
-- Add monitoring and security alerting.
+- Enable PostgreSQL and media-volume backups, test a restore, and add continuous uptime alerting.
+- Configure email delivery before enabling email verification or password recovery.

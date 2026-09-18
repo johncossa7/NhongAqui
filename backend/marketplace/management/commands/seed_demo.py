@@ -1,8 +1,9 @@
 from decimal import Decimal
 from random import choice, randint
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from accounts.models import SellerProfile
 from categories.models import Category
@@ -57,6 +58,9 @@ class Command(BaseCommand):
     help = "Seed demo users, categories, products, reviews and favorites."
 
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError("Demo data can only be created with DJANGO_DEBUG=true.")
+
         categories = {}
         for index, name in enumerate(CATEGORIES):
             category, _ = Category.objects.get_or_create(

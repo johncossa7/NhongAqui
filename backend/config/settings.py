@@ -24,6 +24,8 @@ def env_list(name: str, default: str = "") -> list[str]:
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-change-me-nhongaqui-local-32-bytes")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1,backend")
+if "healthcheck.railway.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("healthcheck.railway.app")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -92,7 +94,13 @@ if env_bool("DJANGO_TEST_SQLITE", False):
         }
     }
 elif DATABASE_URL:
-    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
 else:
     DATABASES = {
         "default": {
@@ -182,6 +190,7 @@ PRODUCT_IMAGE_WEBP_QUALITY = int(env("PRODUCT_IMAGE_WEBP_QUALITY", "85"))
 
 WEB_APP_URL = env("WEB_APP_URL", "http://localhost:5173").rstrip("/")
 EMAIL_VERIFICATION_ENABLED = env_bool("EMAIL_VERIFICATION_ENABLED", False)
+PASSWORD_RESET_ENABLED = env_bool("PASSWORD_RESET_ENABLED", False)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "NhongAqui <no-reply@nhongaqui.local>")
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", "")

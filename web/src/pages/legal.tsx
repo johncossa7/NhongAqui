@@ -1,8 +1,8 @@
-import { useMutation } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ExternalLink, Headphones, Scale, Send, ShieldCheck } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertTriangle, CheckCircle2, ExternalLink, Headphones, Scale, Send, ShieldCheck, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button, Input, Select, Textarea } from "../components/ui";
 import { apiRequest } from "../lib/api";
@@ -10,7 +10,7 @@ import { useAuth } from "../lib/auth";
 import { setSeo } from "../lib/seo";
 import type { SupportRequest } from "../types";
 
-const LEGAL_VERSION = "17 de setembro de 2026";
+const LEGAL_VERSION = "18 de setembro de 2026";
 
 type LegalSection = {
   id: string;
@@ -186,7 +186,7 @@ export function TermsPage() {
       id: "alteracoes",
       title: "10. Alterações e encerramento",
       content: (
-        <p>Podemos atualizar estes Termos por razões legais, técnicas ou de segurança. Alterações relevantes serão anunciadas no serviço e poderão exigir nova aceitação. O utilizador pode deixar de usar o serviço e pedir a desativação da conta pelo suporte, sem prejuízo da conservação de registos legalmente necessários.</p>
+        <p>Podemos atualizar estes Termos por razões legais, técnicas ou de segurança. Alterações relevantes serão anunciadas no serviço e poderão exigir nova aceitação. O utilizador pode deixar de usar o serviço e <Link className="font-bold text-brand-700 hover:underline" to="/eliminar-conta">eliminar a conta</Link>, sem prejuízo da conservação de registos legalmente necessários.</p>
       )
     },
     {
@@ -212,7 +212,7 @@ export function PrivacyPage() {
       content: (
         <>
           <p>O NhongAqui determina como os dados pessoais são tratados para prestar este marketplace. O serviço está em fase de lançamento e os dados formais completos do operador serão acrescentados antes da exploração comercial.</p>
-          <p>Pedidos de acesso, correção, eliminação ou esclarecimento podem ser enviados em <Link className="font-bold text-brand-700 hover:underline" to="/contactos">Contactos</Link>, escolhendo “Privacidade e dados”.</p>
+          <p>Pedidos de acesso, correção ou esclarecimento podem ser enviados em <Link className="font-bold text-brand-700 hover:underline" to="/contactos">Contactos</Link>. A eliminação pode ser iniciada diretamente na página <Link className="font-bold text-brand-700 hover:underline" to="/eliminar-conta">Eliminar conta</Link>.</p>
         </>
       )
     },
@@ -256,7 +256,7 @@ export function PrivacyPage() {
       title: "6. Partilha e fornecedores",
       content: (
         <>
-          <p>Partilhamos apenas o necessário com fornecedores que alojam a aplicação, base de dados, imagens e envio de email, e com consultores ou autoridades quando a lei o exigir. Atualmente a infraestrutura de produção utiliza serviços Railway; os dados podem ser processados fora de Moçambique conforme a localização técnica do fornecedor.</p>
+          <p>Partilhamos apenas o necessário com fornecedores que alojam a aplicação, base de dados e imagens, e com consultores ou autoridades quando a lei o exigir. Atualmente a infraestrutura de produção utiliza serviços Railway; os dados podem ser processados fora de Moçambique conforme a localização técnica do fornecedor.</p>
           <p>Exigimos que prestadores usem a informação para prestar o serviço contratado e adotem medidas de segurança adequadas. Uma futura integração de pagamento terá política própria e identificará o prestador antes de ser ativada.</p>
         </>
       )
@@ -265,21 +265,21 @@ export function PrivacyPage() {
       id: "conservacao",
       title: "7. Conservação",
       content: (
-        <p>Conservamos os dados enquanto a conta estiver ativa e pelo período necessário para prestar o serviço. Após pedido de eliminação, apagamos ou anonimizamos o que já não for necessário, podendo manter registos limitados de transações, consentimentos, denúncias, fraude, segurança e obrigações legais durante o prazo aplicável. Cópias de segurança são eliminadas de acordo com o respetivo ciclo de retenção.</p>
+        <p>Conservamos os dados enquanto a conta estiver ativa e pelo período necessário para prestar o serviço. Ao eliminar a conta, apagamos a conta, anúncios, fotografias, mensagens, favoritos, avaliações, documentos de verificação e restantes dados diretamente associados. Pedidos de suporte e registos administrativos estritamente necessários podem ser conservados sem ligação à conta para segurança, prevenção de fraude ou cumprimento legal. Quando existirem cópias de segurança, os dados residuais desaparecem de acordo com o respetivo ciclo de retenção.</p>
       )
     },
     {
       id: "seguranca",
       title: "8. Segurança",
       content: (
-        <p>Aplicamos controlo de acesso, autenticação, ligações HTTPS, palavras-passe com hash, limitação de pedidos, moderação e cópias de segurança. Nenhum sistema é infalível. Em caso de incidente relevante, investigaremos, reduziremos o impacto e notificaremos utilizadores ou autoridades quando exigido.</p>
+        <p>Aplicamos controlo de acesso, autenticação, ligações HTTPS, palavras-passe com hash, limitação de pedidos e moderação. Nenhum sistema é infalível. Em caso de incidente relevante, investigaremos, reduziremos o impacto e notificaremos utilizadores ou autoridades quando exigido.</p>
       )
     },
     {
       id: "direitos",
       title: "9. Direitos do utilizador",
       content: (
-        <p>O utilizador pode pedir confirmação do tratamento, acesso, correção, atualização ou eliminação dos seus dados, bem como apresentar oposição ou reclamação quando aplicável. Podemos pedir prova de identidade e limitar o pedido quando for necessário proteger terceiros, prevenir fraude ou cumprir a lei. A Constituição moçambicana reconhece o acesso e a retificação de dados pessoais constantes de registos informáticos.</p>
+        <p>O utilizador pode pedir confirmação do tratamento, acesso, correção, atualização ou eliminação dos seus dados, bem como apresentar oposição ou reclamação quando aplicável. A conta pode ser apagada em <Link className="font-bold text-brand-700 hover:underline" to="/eliminar-conta">Eliminar conta</Link>. Podemos pedir prova de identidade e limitar um pedido quando for necessário proteger terceiros, prevenir fraude ou cumprir a lei. A Constituição moçambicana reconhece o acesso e a retificação de dados pessoais constantes de registos informáticos.</p>
       )
     },
     {
@@ -454,6 +454,129 @@ export function ContactPage() {
           <Button className="w-full sm:w-auto" type="submit" disabled={submit.isPending}><Send size={18} /> {submit.isPending ? "A enviar..." : "Enviar pedido"}</Button>
         </form>
       </div>
+    </main>
+  );
+}
+
+export function AccountDeletionPage() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [deleteForm, setDeleteForm] = useState({ current_password: "", confirmation: "" });
+  const [requestForm, setRequestForm] = useState({
+    name: "",
+    email: "",
+    message: "Solicito a eliminacao definitiva da minha conta NhongAqui e dos dados associados."
+  });
+  const deleteAccount = useMutation({
+    mutationFn: () => apiRequest<void>("/auth/account-delete/", {
+      method: "POST",
+      body: JSON.stringify(deleteForm)
+    }),
+    onSuccess: async () => {
+      await logout();
+      queryClient.clear();
+      navigate("/", { replace: true });
+    }
+  });
+  const requestDeletion = useMutation({
+    mutationFn: () => apiRequest<SupportRequest>("/support-requests/", {
+      method: "POST",
+      body: JSON.stringify({
+        ...requestForm,
+        category: "privacy",
+        subject: "Pedido de eliminacao de conta"
+      })
+    })
+  });
+
+  useEffect(() => setSeo("Eliminar conta", "Elimine a sua conta NhongAqui e os dados associados."), []);
+
+  return (
+    <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 lg:px-8 lg:py-12">
+      <header className="border-b border-gray-200 pb-7">
+        <p className="text-xs font-black uppercase tracking-[0.16em] text-accent-red">Conta e dados</p>
+        <h1 className="mt-2 text-3xl font-black text-gray-950 md:text-5xl">Eliminar conta</h1>
+        <p className="mt-4 max-w-3xl leading-7 text-gray-600">
+          Este processo elimina definitivamente a conta, os anuncios, fotografias, mensagens, favoritos,
+          avaliacoes e documentos de verificacao associados. A operacao nao pode ser anulada.
+        </p>
+      </header>
+
+      <section className="py-7">
+        <h2 className="text-xl font-black text-gray-950">O que pode ser conservado</h2>
+        <p className="mt-3 leading-7 text-gray-600">
+          Pedidos de suporte e registos administrativos estritamente necessarios podem permanecer sem ligacao
+          a conta para prevenir fraude, proteger terceiros ou cumprir obrigacoes legais. Consulte a <Link className="font-bold text-brand-700 hover:underline" to="/privacidade">Politica de Privacidade</Link>.
+        </p>
+      </section>
+
+      {user ? (
+        <form
+          className="space-y-4 border-t border-gray-200 pt-7"
+          onSubmit={(event) => { event.preventDefault(); void deleteAccount.mutate(); }}
+        >
+          <div>
+            <h2 className="text-xl font-black text-gray-950">Confirmar eliminacao imediata</h2>
+            <p className="mt-1 text-sm text-gray-600">Introduza a palavra-passe atual e escreva ELIMINAR em maiusculas.</p>
+          </div>
+          <label className="block text-sm font-bold text-gray-700">
+            Palavra-passe atual
+            <Input
+              className="mt-1.5"
+              required
+              type="password"
+              autoComplete="current-password"
+              value={deleteForm.current_password}
+              onChange={(event) => setDeleteForm({ ...deleteForm, current_password: event.target.value })}
+            />
+          </label>
+          <label className="block text-sm font-bold text-gray-700">
+            Confirmacao
+            <Input
+              className="mt-1.5"
+              required
+              autoComplete="off"
+              placeholder="ELIMINAR"
+              value={deleteForm.confirmation}
+              onChange={(event) => setDeleteForm({ ...deleteForm, confirmation: event.target.value })}
+            />
+          </label>
+          {deleteAccount.error instanceof Error ? (
+            <p className="border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{deleteAccount.error.message}</p>
+          ) : null}
+          <Button
+            type="submit"
+            variant="danger"
+            disabled={deleteAccount.isPending || deleteForm.confirmation !== "ELIMINAR" || !deleteForm.current_password}
+          >
+            <Trash2 size={18} /> {deleteAccount.isPending ? "A eliminar..." : "Eliminar a minha conta"}
+          </Button>
+        </form>
+      ) : requestDeletion.data ? (
+        <section className="border-t border-gray-200 pt-7">
+          <CheckCircle2 className="text-brand-700" size={38} />
+          <h2 className="mt-3 text-2xl font-black text-gray-950">Pedido recebido</h2>
+          <p className="mt-2 text-gray-600">A referencia do pedido e <strong>{requestDeletion.data.reference}</strong>. Poderemos pedir confirmacao de identidade antes de eliminar os dados.</p>
+        </section>
+      ) : (
+        <form
+          className="space-y-4 border-t border-gray-200 pt-7"
+          onSubmit={(event) => { event.preventDefault(); void requestDeletion.mutate(); }}
+        >
+          <div>
+            <h2 className="text-xl font-black text-gray-950">Nao consegue entrar?</h2>
+            <p className="mt-1 text-sm text-gray-600">Envie o pedido com o mesmo email usado na conta. Tambem pode <Link className="font-bold text-brand-700 hover:underline" to="/login">entrar</Link> para eliminar imediatamente.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm font-bold text-gray-700">Nome<Input className="mt-1.5" required maxLength={120} value={requestForm.name} onChange={(event) => setRequestForm({ ...requestForm, name: event.target.value })} /></label>
+            <label className="text-sm font-bold text-gray-700">Email da conta<Input className="mt-1.5" required type="email" maxLength={254} value={requestForm.email} onChange={(event) => setRequestForm({ ...requestForm, email: event.target.value })} /></label>
+          </div>
+          <label className="block text-sm font-bold text-gray-700">Informacao adicional<Textarea className="mt-1.5 min-h-32" required minLength={20} maxLength={3000} value={requestForm.message} onChange={(event) => setRequestForm({ ...requestForm, message: event.target.value })} /></label>
+          {requestDeletion.error instanceof Error ? <p className="border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{requestDeletion.error.message}</p> : null}
+          <Button type="submit" disabled={requestDeletion.isPending}><Send size={18} /> {requestDeletion.isPending ? "A enviar..." : "Pedir eliminacao"}</Button>
+        </form>
+      )}
     </main>
   );
 }

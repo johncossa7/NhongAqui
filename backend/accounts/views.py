@@ -11,6 +11,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .emails import send_verification_email
 from .models import SellerProfile, UserBlock
 from .serializers import (
+    AccountDeleteSerializer,
     ChangePasswordSerializer,
     EmailVerificationConfirmSerializer,
     PasswordResetConfirmSerializer,
@@ -20,6 +21,7 @@ from .serializers import (
     RegisterSerializer,
     UserSerializer,
 )
+from .services import delete_user_account
 
 User = get_user_model()
 
@@ -132,6 +134,17 @@ class ChangePasswordView(generics.GenericAPIView):
         return Response({"detail": "Palavra-passe alterada."})
 
 
+class AccountDeleteView(generics.GenericAPIView):
+    serializer_class = AccountDeleteSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        delete_user_account(request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class PasswordResetRequestView(generics.GenericAPIView):
     serializer_class = PasswordResetRequestSerializer
     permission_classes = [permissions.AllowAny]
@@ -139,6 +152,11 @@ class PasswordResetRequestView(generics.GenericAPIView):
     throttle_scope = "password_reset"
 
     def post(self, request):
+        if not settings.PASSWORD_RESET_ENABLED:
+            return Response(
+                {"detail": "Recuperacao por email temporariamente indisponivel."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -150,6 +168,11 @@ class PasswordResetConfirmView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        if not settings.PASSWORD_RESET_ENABLED:
+            return Response(
+                {"detail": "Recuperacao por email temporariamente indisponivel."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()

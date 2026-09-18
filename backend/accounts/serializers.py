@@ -11,7 +11,7 @@ from .emails import send_password_reset_email, send_verification_email
 from .models import SellerProfile, UserBlock
 
 User = get_user_model()
-LEGAL_VERSION = "2026-09-17"
+LEGAL_VERSION = "2026-09-18"
 
 
 class SellerProfileSerializer(serializers.ModelSerializer):
@@ -181,6 +181,21 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
         return user
+
+
+class AccountDeleteSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    confirmation = serializers.CharField(write_only=True)
+
+    def validate_current_password(self, value):
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("Palavra-passe atual invalida.")
+        return value
+
+    def validate_confirmation(self, value):
+        if value.strip() != "ELIMINAR":
+            raise serializers.ValidationError('Escreva "ELIMINAR" para confirmar.')
+        return value
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

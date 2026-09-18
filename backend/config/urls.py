@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.db import DatabaseError, connection
 from django.http import JsonResponse
 from django.urls import include, path, re_path
 from django.views.static import serve
@@ -33,7 +34,13 @@ router.register("verification", VerificationRequestViewSet, basename="verificati
 
 
 def health_check(request):
-    return JsonResponse({"status": "ok", "release": "railway-root-backend"})
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        return JsonResponse({"status": "unavailable", "database": "unavailable"}, status=503)
+    return JsonResponse({"status": "ok", "database": "ok"})
 
 
 urlpatterns = [

@@ -7,7 +7,7 @@ React/Vite Web   ->  Django REST API  <-  Expo Mobile
                            |
                       PostgreSQL
                            |
-                Local media / Azure Blob later
+                Railway media volume
 ```
 
 ## Backend
@@ -34,4 +34,4 @@ The web app and Expo app use the same `/api/v1/` endpoints and the same auth mod
 
 ## Storage
 
-Development uses local files. Production is prepared for Azure Blob Storage via `django-storages`, with private handling required for verification documents.
+Development uses local files. Production product images use the persistent Railway volume. Identity-document uploads remain disabled; if enabled later, they require private object storage instead of the public media volume.

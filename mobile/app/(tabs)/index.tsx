@@ -1,30 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { FlatList, Text, View } from "react-native";
+import { Search } from "lucide-react-native";
+import { FlatList, Pressable, Text, View } from "react-native";
 
 import { apiRequest, normalizePage } from "../../src/api/client";
 import type { Category, Paginated, Product } from "../../src/api/types";
-import { Button, ProductCard, Screen, styles } from "../../src/components/ui";
+import { Button, EmptyState, ErrorMessage, Input, Loading, ProductCard, colors, styles } from "../../src/components/ui";
+import { useState } from "react";
 
 export default function HomeScreen() {
-  const products = useQuery({
-    queryKey: ["products", "home"],
-    queryFn: async () => normalizePage(await apiRequest<Paginated<Product>>("/products/?page_size=10"))
-  });
-  const categories = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => normalizePage(await apiRequest<Paginated<Category> | Category[]>("/categories/"))
-  });
-
-  return (
-    <Screen>
+  const [search, setSearch] = useState("");
+  const products = useQuery({ queryKey: ["products", "home"], queryFn: async () => normalizePage(await apiRequest<Paginated<Product>>("/products/?page_size=20")) });
+  const categories = useQuery({ queryKey: ["categories"], queryFn: async () => normalizePage(await apiRequest<Paginated<Category> | Category[]>("/categories/")) });
+  function submitSearch() {
+    router.push({ pathname: "/search", params: search ? { search } : undefined });
+  }
+  const header = (
+    <View style={{ gap: 14 }}>
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>Maputo e Matola primeiro</Text>
-        <Text style={styles.heroTitle}>Encontre. Venda. Confie.</Text>
-        <Text style={styles.heroText}>Um mercado digital moderno para comprar e vender com mais cuidado.</Text>
+        <Text style={styles.eyebrow}>Marketplace para Moçambique</Text>
+        <Text style={styles.heroTitle}>Compre e venda com conversa direta.</Text>
+        <Text style={styles.heroText}>Encontre oportunidades por cidade e fale diretamente com compradores ou vendedores.</Text>
         <View style={styles.row}>
-          <Button title="Explorar" onPress={() => router.push("/search")} />
-          <Button title="Vender" muted onPress={() => router.push("/sell")} />
+          <Input style={{ flex: 1 }} placeholder="O que procura?" value={search} onChangeText={setSearch} returnKeyType="search" onSubmitEditing={submitSearch} />
+          <Button title="" compact icon={<Search color={colors.white} size={19} />} onPress={submitSearch} />
+        </View>
+        <View style={styles.row}>
+          <Button title="Explorar produtos" style={{ flex: 1 }} onPress={() => router.push("/search")} />
+          <Button title="Vender agora" style={{ flex: 1 }} variant="secondary" onPress={() => router.push("/sell")} />
         </View>
       </View>
       <Text style={styles.sectionTitle}>Categorias</Text>
@@ -34,19 +37,30 @@ export default function HomeScreen() {
         data={categories.data ?? []}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
-          <View style={styles.categoryPill}>
+          <Pressable style={styles.categoryPill} onPress={() => router.push({ pathname: "/search", params: { category: String(item.id) } })}>
             <Text style={styles.categoryText}>{item.name}</Text>
-          </View>
+          </Pressable>
         )}
       />
       <Text style={styles.sectionTitle}>Novidades</Text>
-      <FlatList
-        numColumns={2}
-        data={products.data ?? []}
-        keyExtractor={(item) => String(item.id)}
-        columnWrapperStyle={{ gap: 12 }}
-        renderItem={({ item }) => <ProductCard product={item} onPress={() => router.push(`/product/${item.slug}`)} />}
-      />
-    </Screen>
+      <ErrorMessage error={products.error ?? categories.error} />
+    </View>
+  );
+  if (products.isLoading && !products.data) return <Loading label="A descobrir produtos..." />;
+  return (
+    <FlatList
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 28 }}
+      numColumns={2}
+      data={products.data ?? []}
+      keyExtractor={(item) => String(item.id)}
+      columnWrapperStyle={{ gap: 12 }}
+      ListHeaderComponent={header}
+      ListHeaderComponentStyle={{ marginBottom: 12 }}
+      ListEmptyComponent={<EmptyState title="Ainda sem produtos" text="Os novos anúncios irão aparecer aqui." />}
+      refreshing={products.isFetching}
+      onRefresh={() => { void products.refetch(); void categories.refetch(); }}
+      renderItem={({ item }) => <ProductCard product={item} onPress={() => router.push(("/product/" + item.slug) as never)} />}
+    />
   );
 }

@@ -6,7 +6,7 @@ on:
     branches: [main]
 
 jobs:
-  typecheck:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,3 +21,9 @@ jobs:
       - name: Typecheck
         working-directory: mobile
         run: npm run typecheck
+      - name: Expo doctor
+        working-directory: mobile
+        run: npm run doctor
+      - name: Export Android bundle
+        working-directory: mobile
+        run: npm run export:android

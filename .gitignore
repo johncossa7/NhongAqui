@@ -13,6 +13,7 @@ staticfiles/
 # Node
 node_modules/
 dist/
+dist-android/
 *.tsbuildinfo
 .expo/
 .expo-shared/

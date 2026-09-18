@@ -1,17 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text } from "react-native";
+import { ScrollView, Text } from "react-native";
 
 import { apiRequest } from "../src/api/client";
 import type { User } from "../src/api/types";
-import { Button, Input, Screen, styles } from "../src/components/ui";
+import { AuthGate } from "../src/components/AuthGate";
+import { Button, ErrorMessage, Input, Loading, Screen, styles } from "../src/components/ui";
 import { useAuth } from "../src/lib/auth";
 
 export default function EditProfileScreen() {
-  const { refreshMe } = useAuth();
+  const { isAuthenticated, refreshMe } = useAuth();
   const queryClient = useQueryClient();
-  const profile = useQuery({ queryKey: ["profile"], queryFn: () => apiRequest<User>("/profile/") });
+  const profile = useQuery({ queryKey: ["profile"], queryFn: () => apiRequest<User>("/profile/"), enabled: isAuthenticated });
   const [form, setForm] = useState<Partial<User>>({});
   useEffect(() => {
     if (profile.data) setForm(profile.data);
@@ -25,6 +26,9 @@ export default function EditProfileScreen() {
     }
   });
   return (
+    <AuthGate message="Entre para editar o seu perfil.">
+    {profile.isLoading ? <Loading label="A carregar o perfil..." /> :
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
     <Screen>
       <Text style={styles.title}>Editar perfil</Text>
       <Input placeholder="Nome" value={form.first_name ?? ""} onChangeText={(first_name) => setForm({ ...form, first_name })} />
@@ -33,7 +37,10 @@ export default function EditProfileScreen() {
       <Input placeholder="Provincia" value={form.province ?? ""} onChangeText={(province) => setForm({ ...form, province })} />
       <Input placeholder="Cidade" value={form.city ?? ""} onChangeText={(city) => setForm({ ...form, city })} />
       <Input placeholder="Bairro" value={form.neighborhood ?? ""} onChangeText={(neighborhood) => setForm({ ...form, neighborhood })} />
-      <Button title="Guardar" onPress={() => void save.mutate()} />
+      <ErrorMessage error={profile.error ?? save.error} />
+      <Button title={save.isPending ? "A guardar..." : "Guardar"} disabled={save.isPending} onPress={() => void save.mutate()} />
     </Screen>
+    </ScrollView>}
+    </AuthGate>
   );
 }

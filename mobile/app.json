@@ -3,22 +3,36 @@
     "name": "NhongAqui",
     "slug": "nhongaqui",
     "scheme": "nhongaqui",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "icon": "./assets/branding/NhongAqui_Icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "mz.co.nhongaqui.app"
+      "bundleIdentifier": "mz.co.nhongaqui.app",
+      "buildNumber": "1"
     },
     "android": {
       "package": "mz.co.nhongaqui.app",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/NhongAqui_Icon.png",
         "backgroundColor": "#ffffff"
       }
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-image-picker"]
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O NhongAqui precisa de acesso às suas fotografias para publicar imagens dos produtos.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

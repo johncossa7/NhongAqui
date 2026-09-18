@@ -5,6 +5,7 @@ import type { User } from "../api/types";
 
 type AuthContextValue = {
   user: User | null;
+  isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (payload: Record<string, unknown>) => Promise<void>;
@@ -16,14 +17,22 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refreshMe = useCallback(async () => {
-    if (!(await getTokens())) {
+    try {
+      if (!(await getTokens())) {
+        setUser(null);
+        return;
+      }
+      const me = await apiRequest<User>("/users/me/");
+      setUser(me);
+    } catch {
+      await clearTokens();
       setUser(null);
-      return;
+    } finally {
+      setIsLoading(false);
     }
-    const me = await apiRequest<User>("/users/me/");
-    setUser(me);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -41,6 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [login]);
 
   const logout = useCallback(async () => {
+    const tokens = await getTokens();
+    if (tokens?.refresh) {
+      await apiRequest("/auth/logout/", {
+        method: "POST",
+        body: JSON.stringify({ refresh: tokens.refresh })
+      }).catch(() => undefined);
+    }
     await clearTokens();
     setUser(null);
   }, []);
@@ -50,8 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshMe]);
 
   const value = useMemo(
-    () => ({ user, isAuthenticated: Boolean(user), login, register, logout, refreshMe }),
-    [user, login, register, logout, refreshMe]
+    () => ({ user, isAuthenticated: Boolean(user), isLoading, login, register, logout, refreshMe }),
+    [user, isLoading, login, register, logout, refreshMe]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

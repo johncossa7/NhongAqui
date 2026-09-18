@@ -10,30 +10,30 @@
 - Backend validado localmente com `ruff check .` e `pytest`.
 - Website validado com `npm run lint` e `npm run build`.
 - Mobile Expo validado com `npm run typecheck`.
+- Mobile preparado para Android/Google Play com Expo SDK 54, target API 36, EAS Build e bundle AAB.
+- Fluxos mobile de anuncios, edicao de fotografias, favoritos, mensagens, notificacoes, verificacao manual e gestao da conta concluidos.
 - Demo local iniciada com backend em `http://127.0.0.1:8000`, web em `http://127.0.0.1:5173` e Expo em `exp://192.168.1.169:8081`.
 - Dados demo criados com `seed_demo`: categorias, vendedores, comprador e 20 produtos.
 - GitHub Actions criadas para backend, web e mobile.
 
 ## Em desenvolvimento
 
-- Validacao Docker/PostgreSQL end-to-end.
-- Refinamento visual e funcional dos fluxos web/mobile apos teste manual.
+- Testes internos da app em dispositivos Android reais.
+- Registo da aplicacao na conta Expo e criacao do primeiro AAB assinado.
 
 ## Por fazer
 
-- Deploy real em Azure.
-- Credenciais reais de Azure Blob Storage.
 - Google OAuth ativo.
 - Pagamentos, M-Pesa, e-Mola e compras in-app.
 - IA real para moderacao de imagens.
 - Resolver vulnerabilidades transitivas reportadas por `npm audit` no mobile quando Expo disponibilizar atualizacoes compativeis sem breaking changes.
-- Testar Docker quando Docker Desktop estiver instalado nesta maquina.
 - Push notifications e WebSockets.
+- Criar a ficha da Play Store, preencher Data safety e concluir o teste interno.
 
 ## Decisoes importantes
 
 - Uploads de documentos de verificacao comecam desativados por `VERIFICATION_UPLOADS_ENABLED=false`, porque envolvem dados pessoais sensiveis.
 - Moderacao por IA e uma abstracao (`ImageModerationService`) com implementacao mock nesta fase.
-- As paginas legais sao provisorias e exigem revisao juridica antes do lancamento.
-- Nesta maquina, Docker nao esta disponivel no PATH; a demo atual usa SQLite explicitamente via `DJANGO_TEST_SQLITE=true`.
-- Expo precisou de `NODE_TLS_REJECT_UNAUTHORIZED=0` apenas nesta sessao local devido ao problema de certificado TLS do ambiente.
+- As paginas legais estao publicadas, mas exigem revisao juridica profissional antes de um lancamento amplo.
+- Web, API, PostgreSQL e volume de imagens estao no projeto Railway `NhongAqui website`.
+- Notificacoes mobile sao internas; push em segundo plano fica para uma fase posterior.

@@ -71,6 +71,7 @@ npm run start
 ```
 
 Expo uses the same API. Set `EXPO_PUBLIC_API_URL` when testing on a physical device.
+See `docs/MOBILE.md` for the Android release and Play Console checklist.
 
 ## Tests And Quality
 
@@ -89,16 +90,10 @@ npm run typecheck
 
 ## Production Preparation
 
-The project is prepared for Azure, but no real deployment credentials are committed:
-
-- Azure App Service for Django.
-- Azure Database for PostgreSQL.
-- Azure Blob Storage for product images and private verification documents.
-- Azure Static Web Apps or equivalent for the web client.
-- Google Play and Apple App Store for mobile distribution.
+The web app, Django API, PostgreSQL database and product-image volume are deployed in the Railway project `NhongAqui website`. The Expo app is configured to produce an Android App Bundle for Google Play through EAS Build.
 
 See `docs/DEPLOYMENT.md` and `docs/SECURITY.md` before launch.
 
 ## Legal Notice
 
-The Terms and Privacy pages are provisional product drafts. They require legal review before public launch.
+The Terms, Privacy and prohibited-listing policies are published on the website. They still require review by a qualified Mozambican legal professional before a broad public launch.

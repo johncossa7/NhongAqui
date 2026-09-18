@@ -109,7 +109,7 @@ function SearchBar({ initial = "" }: { initial?: string }) {
   );
 }
 
-function FeaturedTile({ product, large = false }: { product: Product; large?: boolean }) {
+function FeaturedTile({ product, large = false, badge = "Destaque" }: { product: Product; large?: boolean; badge?: string }) {
   return (
     <Link
       to={`/produto/${product.slug}`}
@@ -124,7 +124,7 @@ function FeaturedTile({ product, large = false }: { product: Product; large?: bo
         }}
       />
       <div className="absolute left-3 top-3 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-brand-700">
-        Curado
+        {badge}
       </div>
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-950/90 to-transparent p-4 text-white">
         <p className="line-clamp-1 text-sm font-black uppercase tracking-[0.08em]">{product.title}</p>
@@ -139,7 +139,9 @@ export function HomePage() {
   const categories = useCategories();
   const featured = useProducts({ featured: true, page_size: 4 });
   const recent = useProducts({ page_size: 8, ordering: "-created_at" });
-  const showcase = (featured.data?.length ? featured.data : recent.data ?? []).slice(0, 3);
+  const hasFeaturedProducts = Boolean(featured.data?.length);
+  const showcase = (hasFeaturedProducts ? featured.data ?? [] : recent.data ?? []).slice(0, 3);
+  const showcaseBadge = hasFeaturedProducts ? "Destaque" : "Recente";
 
   return (
     <Shell>
@@ -180,8 +182,8 @@ export function HomePage() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 rounded-[1.5rem] bg-accent-ink p-3">
-          {showcase[0] ? <FeaturedTile product={showcase[0]} large /> : null}
-          {showcase.slice(1).map((product) => <FeaturedTile key={product.id} product={product} />)}
+          {showcase[0] ? <FeaturedTile product={showcase[0]} large badge={showcaseBadge} /> : null}
+          {showcase.slice(1).map((product) => <FeaturedTile key={product.id} product={product} badge={showcaseBadge} />)}
         </div>
       </section>
 
@@ -1458,9 +1460,6 @@ export function ProfilePage() {
       await queryClient.invalidateQueries({ queryKey: ["profile"] });
     }
   });
-  const resendEmail = useMutation({
-    mutationFn: () => apiRequest("/auth/email-verification/resend/", { method: "POST" })
-  });
   const requestVerification = useMutation({
     mutationFn: () => apiRequest<VerificationRequest>("/verification/", {
       method: "POST",
@@ -1478,24 +1477,6 @@ export function ProfilePage() {
         <h1 className="text-2xl font-bold">Perfil</h1>
         <Button variant="secondary" onClick={() => void logout()}>Sair</Button>
       </div>
-      {!user?.email_verified ? (
-        <div className="mb-5 flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <Mail className="mt-0.5 text-amber-700" size={20} />
-            <div>
-              <p className="font-black text-amber-950">Confirme o seu email</p>
-              <p className="text-sm text-amber-800">Use o link enviado para {user?.email}.</p>
-            </div>
-          </div>
-          <Button variant="secondary" disabled={resendEmail.isPending || resendEmail.isSuccess} onClick={() => void resendEmail.mutate()}>
-            {resendEmail.isSuccess ? "Link enviado" : "Reenviar link"}
-          </Button>
-        </div>
-      ) : (
-        <div className="mb-5 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 p-3 text-sm font-bold text-green-800">
-          <CheckCircle2 size={18} /> Email confirmado
-        </div>
-      )}
       <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void save.mutate(); }}>
         <div className="grid grid-cols-2 gap-3">
           <Input placeholder="Nome" value={form.first_name ?? ""} onChange={(event) => setForm({ ...form, first_name: event.target.value })} />
@@ -2131,38 +2112,6 @@ export function ResetPasswordPage() {
             <Button type="submit" disabled={reset.isPending}>Guardar nova palavra-passe</Button>
             {reset.error instanceof Error ? <p className="text-sm font-bold text-red-700">{reset.error.message}</p> : null}
           </form>
-        )}
-      </Card>
-    </Shell>
-  );
-}
-
-export function VerifyEmailPage() {
-  const [params] = useSearchParams();
-  const { refreshMe } = useAuth();
-  const uid = params.get("uid") ?? "";
-  const token = params.get("token") ?? "";
-  const confirmation = useMutation({
-    mutationFn: () => apiRequest("/auth/email-verification/confirm/", {
-      method: "POST",
-      body: JSON.stringify({ uid, token })
-    }),
-    onSuccess: () => refreshMe()
-  });
-
-  useEffect(() => {
-    if (uid && token && confirmation.isIdle) void confirmation.mutate();
-  }, [uid, token, confirmation]);
-
-  return (
-    <Shell narrow>
-      <Card className="p-6 text-center shadow-soft">
-        {confirmation.isPending ? (
-          <><Clock3 className="mx-auto text-brand-600" size={34} /><h1 className="mt-3 text-2xl font-black">A confirmar email...</h1></>
-        ) : confirmation.isSuccess ? (
-          <><CheckCircle2 className="mx-auto text-green-600" size={38} /><h1 className="mt-3 text-2xl font-black">Email confirmado</h1><p className="mt-2 text-gray-600">A sua conta esta mais segura.</p><Link className="mt-5 inline-flex" to="/perfil"><Button>Voltar ao perfil</Button></Link></>
-        ) : (
-          <><AlertCircle className="mx-auto text-red-600" size={38} /><h1 className="mt-3 break-words text-xl font-black sm:text-2xl">Link invalido ou expirado</h1><p className="mt-2 break-words text-gray-600">Entre no perfil para pedir um novo link.</p></>
         )}
       </Card>
     </Shell>

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
@@ -140,7 +141,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             user=user,
             display_name=display_name or user.full_name,
         )
-        send_verification_email(user)
+        if settings.EMAIL_VERIFICATION_ENABLED:
+            send_verification_email(user)
         return user
 
 

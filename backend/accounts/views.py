@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from rest_framework import generics, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -162,6 +163,8 @@ class EmailVerificationConfirmView(generics.GenericAPIView):
     throttle_scope = "email_verification"
 
     def post(self, request):
+        if not settings.EMAIL_VERIFICATION_ENABLED:
+            return Response({"detail": "Verificacao de email temporariamente indisponivel."}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -174,6 +177,8 @@ class ResendEmailVerificationView(APIView):
     throttle_scope = "email_verification"
 
     def post(self, request):
+        if not settings.EMAIL_VERIFICATION_ENABLED:
+            return Response({"detail": "Verificacao de email temporariamente indisponivel."}, status=status.HTTP_404_NOT_FOUND)
         if request.user.email_verified_at is None:
             send_verification_email(request.user)
         return Response({"detail": "Se necessario, enviamos um novo link."})

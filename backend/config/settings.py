@@ -181,6 +181,7 @@ PRODUCT_IMAGE_MAX_DIMENSION = int(env("PRODUCT_IMAGE_MAX_DIMENSION", "2048"))
 PRODUCT_IMAGE_WEBP_QUALITY = int(env("PRODUCT_IMAGE_WEBP_QUALITY", "85"))
 
 WEB_APP_URL = env("WEB_APP_URL", "http://localhost:5173").rstrip("/")
+EMAIL_VERIFICATION_ENABLED = env_bool("EMAIL_VERIFICATION_ENABLED", False)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "NhongAqui <no-reply@nhongaqui.local>")
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", "")

@@ -122,7 +122,7 @@ export function TermsPage() {
           <li>Forneça informação verdadeira, atual e suficiente para contacto e verificação.</li>
           <li>Proteja a palavra-passe e informe o suporte se suspeitar de acesso indevido.</li>
           <li>Uma conta é pessoal. Não venda, alugue nem partilhe o acesso.</li>
-          <li>A verificação de email ou identidade reduz risco, mas não constitui garantia sobre cada transação.</li>
+          <li>A verificação de identidade reduz risco, mas não constitui garantia sobre cada transação.</li>
         </ul>
       )
     },

@@ -15,8 +15,11 @@ User = get_user_model()
 
 
 @pytest.mark.django_db
-@override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
-def test_register_and_login():
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    EMAIL_VERIFICATION_ENABLED=False,
+)
+def test_register_and_login_without_email_verification():
     client = APIClient()
     register = client.post(
         "/api/v1/auth/register/",
@@ -39,8 +42,7 @@ def test_register_and_login():
     assert user.terms_version == "2026-09-17"
     assert user.privacy_version == "2026-09-17"
     assert user.terms_accepted_at is not None
-    assert len(mail.outbox) == 1
-    assert "/verificar-email?" in mail.outbox[0].body
+    assert len(mail.outbox) == 0
 
     login = client.post(
         "/api/v1/auth/login/",
@@ -70,6 +72,7 @@ def test_register_requires_legal_acceptance():
 
 
 @pytest.mark.django_db
+@override_settings(EMAIL_VERIFICATION_ENABLED=True)
 def test_user_can_confirm_email():
     user = User.objects.create_user(email="confirm@example.com", password="StrongPass123!")
     uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -84,6 +87,28 @@ def test_user_can_confirm_email():
     assert response.status_code == 200
     user.refresh_from_db()
     assert user.email_verified_at is not None
+
+
+@pytest.mark.django_db
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    EMAIL_VERIFICATION_ENABLED=False,
+)
+def test_email_verification_endpoints_are_disabled():
+    user = User.objects.create_user(email="disabled@example.com", password="StrongPass123!")
+    client = APIClient()
+    client.force_authenticate(user)
+
+    resend = client.post("/api/v1/auth/email-verification/resend/")
+    confirm = client.post(
+        "/api/v1/auth/email-verification/confirm/",
+        {"uid": "unused", "token": "unused"},
+        format="json",
+    )
+
+    assert resend.status_code == 404
+    assert confirm.status_code == 404
+    assert len(mail.outbox) == 0
 
 
 @pytest.mark.django_db

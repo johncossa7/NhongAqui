@@ -14,6 +14,7 @@ staticfiles/
 node_modules/
 dist/
 dist-android/
+dist-ios/
 *.tsbuildinfo
 .expo/
 .expo-shared/

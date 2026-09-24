@@ -1,6 +1,8 @@
 # Mobile
 
-The mobile app uses Expo SDK 54, Expo Router and TypeScript. It consumes the production Django API used by the website.
+The mobile app uses Expo SDK 57, Expo Router and TypeScript. It consumes the production Django API used by the website.
+
+The EAS project is linked as `@jonhcossa7/nhongaqui`. See `docs/PLAY_STORE.md` for the final release and Play Console declarations.
 
 ## Development
 
@@ -50,7 +52,7 @@ The first EAS configuration command links the local project to the owner's Expo 
 
 Before Play Console submission:
 
-1. Complete the store listing, screenshots, feature graphic and support contact.
+1. Complete the store listing, screenshots, feature graphic and support contact using `docs/PLAY_STORE.md`.
 2. Complete Data safety using the actual production data flows.
 3. Declare the privacy policy URL and account deletion URL: `https://web-production-d7b9f.up.railway.app/eliminar-conta`.
 4. Complete content rating, ads, target audience and app access declarations.

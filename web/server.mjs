@@ -16,7 +16,18 @@ const types = {
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
   ".svg": "image/svg+xml",
+  ".txt": "text/plain; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
   ".webp": "image/webp"
+};
+
+const securityHeaders = {
+  "Content-Security-Policy": "default-src 'self'; connect-src 'self' https://nhongaqui-production.up.railway.app; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY"
 };
 
 function resolvePath(url) {
@@ -34,6 +45,11 @@ function resolvePath(url) {
 createServer((request, response) => {
   const filePath = resolvePath(request.url ?? "/");
   response.setHeader("Content-Type", types[extname(filePath)] ?? "application/octet-stream");
+  Object.entries(securityHeaders).forEach(([name, value]) => response.setHeader(name, value));
+  response.setHeader(
+    "Cache-Control",
+    filePath.endsWith("index.html") ? "no-cache" : "public, max-age=31536000, immutable"
+  );
   createReadStream(filePath)
     .on("error", () => {
       response.statusCode = 404;

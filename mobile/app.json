@@ -2,12 +2,15 @@
   "expo": {
     "name": "NhongAqui",
     "slug": "nhongaqui",
+    "description": "Marketplace de compra e venda de produtos em Mocambique.",
     "scheme": "nhongaqui",
     "version": "1.0.0",
     "icon": "./assets/branding/NhongAqui_Icon.png",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "mz.co.nhongaqui.app",
@@ -16,7 +19,9 @@
     "android": {
       "package": "mz.co.nhongaqui.app",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/branding/NhongAqui_Icon.png",
         "backgroundColor": "#ffffff"
@@ -32,7 +37,15 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
-    ]
+      ],
+      "expo-status-bar"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b925ac8e-a6da-467e-a1d8-640c28f1645d"
+      }
+    },
+    "owner": "jonhcossa7"
   }
 }

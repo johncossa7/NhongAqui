@@ -10,7 +10,7 @@
 - Backend validado localmente com `ruff check .` e `pytest`.
 - Website validado com `npm run lint` e `npm run build`.
 - Mobile Expo validado com `npm run typecheck`.
-- Mobile preparado para Android/Google Play com Expo SDK 54, target API 36, EAS Build e bundle AAB.
+- Mobile preparado para Android/Google Play com Expo SDK 57, target API 36, EAS Build e bundle AAB.
 - Fluxos mobile de anuncios, edicao de fotografias, favoritos, mensagens, notificacoes, verificacao manual e gestao da conta concluidos.
 - Demo local iniciada com backend em `http://127.0.0.1:8000`, web em `http://127.0.0.1:5173` e Expo em `exp://192.168.1.169:8081`.
 - Dados demo criados com `seed_demo`: categorias, vendedores, comprador e 20 produtos.
@@ -19,7 +19,7 @@
 ## Em desenvolvimento
 
 - Testes internos da app em dispositivos Android reais.
-- Registo da aplicacao na conta Expo e criacao do primeiro AAB assinado.
+- Criacao do primeiro AAB assinado e teste num dispositivo Android real.
 
 ## Por fazer
 

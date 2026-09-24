@@ -8,6 +8,8 @@ type Tokens = {
   refresh: string;
 };
 
+let refreshPromise: Promise<Tokens | null> | null = null;
+
 const ACCESS_KEY = "nhongaqui.access";
 const REFRESH_KEY = "nhongaqui.refresh";
 
@@ -63,12 +65,38 @@ export function clearTokens() {
   localStorage.removeItem(REFRESH_KEY);
 }
 
+async function refreshTokens(refresh: string): Promise<Tokens | null> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_URL}/auth/refresh/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refresh })
+        });
+        if (!response.ok) {
+          throw new Error("Sessao expirada.");
+        }
+        const payload = await response.json() as { access: string; refresh?: string };
+        const nextTokens = { access: payload.access, refresh: payload.refresh ?? refresh };
+        setTokens(nextTokens);
+        return nextTokens;
+      } catch {
+        clearTokens();
+        return null;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+  return refreshPromise;
+}
+
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const tokens = getTokens();
+  let tokens = getTokens();
   const headers = new Headers(options.headers);
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  const method = options.method?.toUpperCase() ?? "GET";
   const isFormData = options.body instanceof FormData;
   if (!isFormData && options.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -83,14 +111,16 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
       headers,
       signal: options.signal ?? controller.signal
     });
-    if (response.status === 401 && tokens?.access && (method === "GET" || method === "HEAD")) {
-      clearTokens();
-      headers.delete("Authorization");
-      response = await fetch(`${API_URL}${path}`, {
-        ...options,
-        headers,
-        signal: options.signal ?? controller.signal
-      });
+    if (response.status === 401 && tokens?.refresh && path !== "/auth/refresh/") {
+      tokens = await refreshTokens(tokens.refresh);
+      if (tokens) {
+        headers.set("Authorization", `Bearer ${tokens.access}`);
+        response = await fetch(`${API_URL}${path}`, {
+          ...options,
+          headers,
+          signal: options.signal ?? controller.signal
+        });
+      }
     }
     if (!response.ok) {
       const payload = await response.json().catch(() => ({ detail: response.statusText }));

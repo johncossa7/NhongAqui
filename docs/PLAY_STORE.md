@@ -26,9 +26,29 @@ Let EAS manage the Android signing key and keep access to the Expo account prote
 
 - App name: `NhongAqui`
 - Category: `Shopping`
-- Short description: `Compre e venda produtos em Mocambique com anuncios, fotografias e conversa direta.`
+- Short description: `Compre e venda em Moçambique com fotografias, favoritos e conversa direta.`
 - Audience: adults aged 18 and over; the service is not designed for children.
 - Ads declaration: the current app contains no advertising SDK or paid ads.
+
+Full description:
+
+```text
+O NhongAqui é um marketplace para comprar e vender produtos em Moçambique com contacto direto entre compradores e vendedores.
+
+Descubra anúncios por categoria, cidade e preço. Guarde os seus favoritos, veja os detalhes e as fotografias de cada produto e converse com o vendedor dentro da aplicação.
+
+Para vender, crie um anúncio com até oito fotografias, descrição, estado, preço e localização. Depois pode editar o anúncio, acrescentar ou remover fotografias e marcar o produto como reservado ou vendido.
+
+A aplicação inclui notificações internas, gestão dos seus anúncios, avaliações, denúncia de conteúdo e bloqueio de utilizadores. A verificação manual ajuda a identificar vendedores, mas cada utilizador deve confirmar o produto e combinar pagamento e entrega com segurança.
+
+O NhongAqui não recebe pagamentos nem realiza entregas nesta versão. O serviço destina-se a pessoas com 18 anos ou mais.
+```
+
+Release notes for version 1.0.0:
+
+```text
+Primeira versão do NhongAqui: pesquisa de produtos, favoritos, publicação de anúncios com fotografias, gestão de vendas, mensagens, notificações, avaliações, denúncias e controlo da conta.
+```
 
 Required graphics:
 

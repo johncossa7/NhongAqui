@@ -22,6 +22,13 @@ npx eas-cli build --platform android --profile production
 
 Let EAS manage the Android signing key and keep access to the Expo account protected with two-factor authentication.
 
+First production bundle:
+
+- EAS build: `195096d5-7370-4472-b59e-23b79f6619ec`
+- App version: `1.0.0` (`versionCode 3`)
+- Local file: `mobile/builds/nhongaqui-1.0.0-3.aab`
+- SHA-256: `B551775AFEB05051473EC24B3EC2998FE9FDF25EB8ACF5A2C454F34C841D959B`
+
 ## Store listing draft
 
 - App name: `NhongAqui`
@@ -91,7 +98,7 @@ Current behaviour:
 
 1. Add the verified developer identity, public support email, phone and address in Play Console.
 2. Replace the provisional operator details in the website Terms and Privacy Policy with the legal name, address, NUIT/company registration where applicable, and public support contact.
-3. Upload the signed AAB to Internal testing and run the complete smoke-test checklist on a real Android device.
+3. Upload `mobile/builds/nhongaqui-1.0.0-3.aab` to Internal testing and run the complete smoke-test checklist on a real Android device.
 4. If the developer account is a personal account created after 13 November 2023, run a Closed test with at least 12 opted-in testers continuously for 14 days before applying for production access.
 5. Fill in Privacy policy, Data safety, Ads, App access, Target audience and content, Content rating, Account deletion and any current Play Console declarations.
 6. Confirm PostgreSQL and media-volume backups, external uptime alerts and a successful restore drill.

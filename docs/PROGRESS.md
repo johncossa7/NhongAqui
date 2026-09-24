@@ -11,6 +11,8 @@
 - Website validado com `npm run lint` e `npm run build`.
 - Mobile Expo validado com `npm run typecheck`.
 - Mobile preparado para Android/Google Play com Expo SDK 57, target API 36, EAS Build e bundle AAB.
+- Primeiro AAB de producao assinado concluido no EAS (`1.0.0`, `versionCode 3`) e guardado em `mobile/builds/nhongaqui-1.0.0-3.aab`.
+- Icone 512 x 512 e feature graphic 1024 x 500 preparados em `docs/store-assets`.
 - Fluxos mobile de anuncios, edicao de fotografias, favoritos, mensagens, notificacoes, verificacao manual e gestao da conta concluidos.
 - Demo local iniciada com backend em `http://127.0.0.1:8000`, web em `http://127.0.0.1:5173` e Expo em `exp://192.168.1.169:8081`.
 - Dados demo criados com `seed_demo`: categorias, vendedores, comprador e 20 produtos.
@@ -19,7 +21,7 @@
 ## Em desenvolvimento
 
 - Testes internos da app em dispositivos Android reais.
-- Criacao do primeiro AAB assinado e teste num dispositivo Android real.
+- Teste do AAB assinado num dispositivo Android real ou em teste interno da Play Store.
 
 ## Por fazer
 

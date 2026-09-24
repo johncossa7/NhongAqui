@@ -15,6 +15,9 @@ node_modules/
 dist/
 dist-android/
 dist-ios/
+mobile/builds/
+*.aab
+*.apk
 *.tsbuildinfo
 .expo/
 .expo-shared/

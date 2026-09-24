@@ -52,8 +52,8 @@ Primeira versão do NhongAqui: pesquisa de produtos, favoritos, publicação de 
 
 Required graphics:
 
-- 512 x 512 PNG store icon.
-- 1024 x 500 PNG or JPEG feature graphic.
+- 512 x 512 PNG store icon: `docs/store-assets/play-store-icon.png`.
+- 1024 x 500 PNG feature graphic: `docs/store-assets/feature-graphic.png`.
 - At least two real Android phone screenshots; include discovery, product details, publishing and messages.
 
 Do not use Expo Go screenshots for the final listing. Capture them from the signed preview or internal-test build.

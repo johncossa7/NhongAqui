@@ -8,8 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://nhongaqui-production.up.railway.app/api/v1",
-        "EXPO_PUBLIC_WEB_URL": "https://web-production-d7b9f.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://api.nhongaqui.com/api/v1",
+        "EXPO_PUBLIC_WEB_URL": "https://nhongaqui.com"
       }
     },
     "preview": {
@@ -18,8 +18,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://nhongaqui-production.up.railway.app/api/v1",
-        "EXPO_PUBLIC_WEB_URL": "https://web-production-d7b9f.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://api.nhongaqui.com/api/v1",
+        "EXPO_PUBLIC_WEB_URL": "https://nhongaqui.com"
       }
     },
     "production": {
@@ -28,8 +28,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://nhongaqui-production.up.railway.app/api/v1",
-        "EXPO_PUBLIC_WEB_URL": "https://web-production-d7b9f.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://api.nhongaqui.com/api/v1",
+        "EXPO_PUBLIC_WEB_URL": "https://nhongaqui.com"
       }
     }
   }

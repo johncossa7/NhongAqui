@@ -54,9 +54,9 @@ Before Play Console submission:
 
 1. Complete the store listing, screenshots, feature graphic and support contact using `docs/PLAY_STORE.md`.
 2. Complete Data safety using the actual production data flows.
-3. Declare the privacy policy URL and account deletion URL: `https://web-production-d7b9f.up.railway.app/eliminar-conta`.
+3. Declare the privacy policy URL and account deletion URL: `https://nhongaqui.com/eliminar-conta`.
 4. Complete content rating, ads, target audience and app access declarations.
 5. Upload the AAB to internal testing and test installation, login, image upload, chat and account deletion on a real Android device.
-6. Replace the Railway URLs with the permanent domain before the public release if the domain is ready.
+6. Confirm `https://nhongaqui.com` and `https://api.nhongaqui.com/health/` before the public release.
 
 Push notifications are not included yet. Notifications are available inside the app and refresh while it is open.

@@ -10,8 +10,8 @@ This checklist reflects the production app as implemented in September 2026. Rec
 - Build profile: `production` in `mobile/eas.json`
 - Output: Android App Bundle (`.aab`)
 - Target API: Android 16 / API 36 through Expo SDK 57
-- Privacy policy: `https://web-production-d7b9f.up.railway.app/privacidade`
-- Account deletion: `https://web-production-d7b9f.up.railway.app/eliminar-conta`
+- Privacy policy: `https://nhongaqui.com/privacidade`
+- Account deletion: `https://nhongaqui.com/eliminar-conta`
 
 Create a signed release with:
 

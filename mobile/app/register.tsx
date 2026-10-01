@@ -6,7 +6,7 @@ import { KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, V
 import { Button, ErrorMessage, Input, Screen, SelectField, colors, styles } from "../src/components/ui";
 import { useAuth } from "../src/lib/auth";
 
-const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? "https://web-production-d7b9f.up.railway.app";
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? "https://nhongaqui.com";
 const accountTypes = [
   { label: "Particular", value: "individual" },
   { label: "Profissional", value: "professional" },

@@ -6,7 +6,7 @@ import { Button, Card, Loading, Screen, StatusBadge, colors, styles } from "../.
 import { useUnreadCounts } from "../../src/hooks/useUnreadCounts";
 import { useAuth } from "../../src/lib/auth";
 
-const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? "https://web-production-d7b9f.up.railway.app";
+const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL ?? "https://nhongaqui.com";
 
 function MenuRow({ title, icon, badge, onPress, danger = false }: { title: string; icon: React.ReactNode; badge?: number; onPress: () => void; danger?: boolean }) {
   return (

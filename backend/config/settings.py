@@ -24,8 +24,9 @@ def env_list(name: str, default: str = "") -> list[str]:
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-only-change-me-nhongaqui-local-32-bytes")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1,backend")
-if "healthcheck.railway.app" not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append("healthcheck.railway.app")
+for required_host in ("healthcheck.railway.app", "api.nhongaqui.com"):
+    if required_host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(required_host)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -144,6 +145,13 @@ CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
+for production_origin in ("https://nhongaqui.com", "https://www.nhongaqui.com"):
+    if production_origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(production_origin)
+    if production_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(production_origin)
+if "https://api.nhongaqui.com" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://api.nhongaqui.com")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

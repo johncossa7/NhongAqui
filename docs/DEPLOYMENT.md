@@ -16,11 +16,11 @@ Required variables:
 - `DJANGO_SECRET_KEY`: a long random value, never the placeholder from the example file
 - `DJANGO_DEBUG=false`
 - `DATABASE_URL=${{Postgres.DATABASE_URL}}`
-- `ALLOWED_HOSTS=.up.railway.app,healthcheck.railway.app`
-- `CORS_ALLOWED_ORIGINS=https://web-production-d7b9f.up.railway.app`
-- `CSRF_TRUSTED_ORIGINS=https://web-production-d7b9f.up.railway.app,https://nhongaqui-production.up.railway.app`
+- `ALLOWED_HOSTS=.up.railway.app,healthcheck.railway.app,api.nhongaqui.com`
+- `CORS_ALLOWED_ORIGINS=https://nhongaqui.com,https://www.nhongaqui.com`
+- `CSRF_TRUSTED_ORIGINS=https://nhongaqui.com,https://www.nhongaqui.com,https://api.nhongaqui.com`
 - `SERVE_MEDIA_FILES=true`
-- `WEB_APP_URL=https://web-production-d7b9f.up.railway.app`
+- `WEB_APP_URL=https://nhongaqui.com`
 - `EMAIL_VERIFICATION_ENABLED=false`
 - `PASSWORD_RESET_ENABLED=false`
 
@@ -29,7 +29,7 @@ Required variables:
 - Root directory: `/web`
 - Build command: `npm run build`
 - Start command: `npm start`
-- `VITE_API_URL=https://nhongaqui-production.up.railway.app/api/v1`
+- `VITE_API_URL=https://api.nhongaqui.com/api/v1`
 
 ## Backups
 
@@ -47,8 +47,8 @@ Railway reference: <https://docs.railway.com/guides/postgres-backups-restores>
 
 Railway healthchecks run during deployment, not continuously. Configure `/health/` on the backend service; it returns `503` when PostgreSQL cannot be reached. Add an external uptime monitor for:
 
-- `https://nhongaqui-production.up.railway.app/health/`
-- `https://web-production-d7b9f.up.railway.app/`
+- `https://api.nhongaqui.com/health/`
+- `https://nhongaqui.com/`
 
 Send alerts only for the `NhongAqui website` project. Review Railway storage, memory, CPU and restart metrics weekly during the launch period.
 

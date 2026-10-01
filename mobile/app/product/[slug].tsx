@@ -145,7 +145,7 @@ export default function ProductDetailsScreen() {
           </Card>
           {owner ? <Button title="Editar este anúncio" onPress={() => router.push(("/edit-listing/" + item.slug) as never)} /> : <Button title="Contactar vendedor" icon={<MessageCircle color={colors.white} size={19} />} onPress={() => void contactSeller()} />}
           <View style={styles.row}>
-            <Button title="Partilhar" style={{ flex: 1 }} variant="secondary" icon={<Share2 color={colors.brand} size={17} />} onPress={() => { const url = (process.env.EXPO_PUBLIC_WEB_URL ?? "https://web-production-d7b9f.up.railway.app") + "/produto/" + item.slug; void Share.share({ message: item.title + " - " + item.price + " MT\n" + url, url }); }} />
+            <Button title="Partilhar" style={{ flex: 1 }} variant="secondary" icon={<Share2 color={colors.brand} size={17} />} onPress={() => { const url = (process.env.EXPO_PUBLIC_WEB_URL ?? "https://nhongaqui.com") + "/produto/" + item.slug; void Share.share({ message: item.title + " - " + item.price + " MT\n" + url, url }); }} />
             {!owner ? <Button title="Avaliar" style={{ flex: 1 }} variant="secondary" icon={<Star color={colors.brand} size={17} />} onPress={() => requireAuth(() => setReviewOpen(true))} /> : null}
           </View>
           {!owner ? (

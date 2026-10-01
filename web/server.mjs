@@ -22,7 +22,7 @@ const types = {
 };
 
 const securityHeaders = {
-  "Content-Security-Policy": "default-src 'self'; connect-src 'self' https://nhongaqui-production.up.railway.app; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests",
+  "Content-Security-Policy": "default-src 'self'; connect-src 'self' https://api.nhongaqui.com; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests",
   "Cross-Origin-Opener-Policy": "same-origin",
   "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
   "Referrer-Policy": "strict-origin-when-cross-origin",

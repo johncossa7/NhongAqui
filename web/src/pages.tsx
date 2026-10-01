@@ -168,17 +168,9 @@ export function HomePage() {
             </Link>
             <Link to="/vender"><Button variant="secondary">Vender agora</Button></Link>
           </div>
-          <div className="grid max-w-xl grid-cols-3 overflow-hidden rounded-2xl border border-gray-200 bg-accent-cream">
-            {[
-              ["8", "fotos por anuncio"],
-              ["0 MT", "publicar"],
-              ["Chat", "comprador direto"]
-            ].map(([value, label]) => (
-              <div key={label} className="border-r border-gray-200 p-4 last:border-r-0">
-                <p className="text-2xl font-black text-accent-ink">{value}</p>
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-500">{label}</p>
-              </div>
-            ))}
+          <div className="flex max-w-xl items-start gap-3 border-l-4 border-brand-600 py-1 pl-4 text-sm leading-6 text-gray-600">
+            <ShieldCheck className="mt-0.5 shrink-0 text-brand-700" size={20} />
+            <p>Combine a entrega num local publico e confirme o produto antes de pagar.</p>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 rounded-[1.5rem] bg-accent-ink p-3">

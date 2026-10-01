@@ -13,6 +13,7 @@ import {
   Flag,
   Heart,
   ImagePlus,
+  LogOut,
   MapPin,
   Mail,
   MessageCircle,
@@ -1480,9 +1481,19 @@ export function ProfilePage() {
   const latestVerification = verification.data?.[0];
   return (
     <Shell narrow>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Perfil</h1>
-        <Button variant="secondary" onClick={() => void logout()}>Sair</Button>
+        <div className="flex flex-wrap gap-2">
+          <Link to="/vendas">
+            <Button variant="secondary"><Package size={17} />Minhas vendas</Button>
+          </Link>
+          {user?.is_staff ? (
+            <Link to="/admin">
+              <Button variant="secondary"><ShieldCheck size={17} />Admin</Button>
+            </Link>
+          ) : null}
+          <Button variant="secondary" onClick={() => void logout()}><LogOut size={17} />Sair</Button>
+        </div>
       </div>
       <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); void save.mutate(); }}>
         <div className="grid grid-cols-2 gap-3">

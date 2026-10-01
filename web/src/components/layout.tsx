@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Heart, Home, MessageCircle, Package, PlusCircle, Search, ShieldCheck, UserRound, X } from "lucide-react";
+import { Bell, Heart, Home, MessageCircle, PlusCircle, Search, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 
@@ -247,11 +247,7 @@ export function MobileNav() {
     user
       ? { to: "/mensagens", label: "Mensagens", icon: MessageCircle, badge: unreadMessages.data?.count ?? 0 }
       : { to: "/favoritos", label: "Favoritos", icon: Heart },
-    user?.is_staff
-      ? { to: "/admin", label: "Admin", icon: ShieldCheck }
-      : user
-        ? { to: "/vendas", label: "Vendas", icon: Package }
-        : { to: "/perfil", label: "Perfil", icon: UserRound }
+    { to: "/perfil", label: "Perfil", icon: UserRound }
   ];
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-950/10 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden">

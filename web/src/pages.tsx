@@ -151,7 +151,7 @@ export function HomePage() {
           <img
             className="aspect-[3/2] h-full w-full object-cover"
             src={marketplaceHero}
-            alt="Comprador e vendedor a verificar um telemóvel"
+            alt="Produtos disponíveis no marketplace NhongAqui"
           />
         </div>
       </section>

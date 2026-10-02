@@ -159,11 +159,11 @@ export function Brand({ inverted = false }: { inverted?: boolean }) {
   return (
     <Link
       to="/"
-      className={`flex items-center gap-2.5 font-black ${inverted ? "text-white" : "text-gray-950"}`}
+      className={`flex min-w-0 items-center gap-2 font-black md:gap-2.5 ${inverted ? "text-white" : "text-gray-950"}`}
       aria-label="NhongAqui"
     >
-      <img className="size-10 shrink-0 rounded-full object-cover" src={brandIcon} alt="" />
-      <span className="text-[1.05rem] uppercase tracking-[0.12em]">NhongAqui</span>
+      <img className="size-8 shrink-0 rounded-full object-cover md:size-10" src={brandIcon} alt="" />
+      <span className="truncate text-sm uppercase tracking-[0.12em] md:text-[1.05rem]">NhongAqui</span>
     </Link>
   );
 }
@@ -175,7 +175,7 @@ export function Header() {
   const notificationSummary = useNotificationSummary(Boolean(user));
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200/80 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex min-h-[4.25rem] max-w-[1500px] items-center gap-4 px-4 lg:px-8">
+      <div className="mx-auto flex min-h-14 max-w-[1500px] items-center gap-2 px-3 md:min-h-[4.25rem] md:gap-4 md:px-4 lg:px-8">
         <Brand />
         {user ? (
           <Link className="relative ml-auto flex size-11 items-center justify-center rounded-full text-gray-700 md:hidden" to="/notificacoes" aria-label="Notificacoes">
@@ -250,19 +250,19 @@ export function MobileNav() {
     { to: "/perfil", label: "Perfil", icon: UserRound }
   ];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-950/10 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-950/10 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] pt-1.5 shadow-[0_-10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl md:hidden">
       <div className="mx-auto grid max-w-md grid-cols-5">
         {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `relative flex flex-col items-center gap-1 px-1 py-2 text-xs font-black transition ${
-                item.raised ? "-mt-5 rounded-2xl bg-brand-600 py-3 text-white shadow-glow ring-2 ring-accent-yellow" : isActive ? "text-brand-700" : "text-gray-500"
+              `relative flex min-w-0 flex-col items-center gap-0.5 px-0.5 py-1.5 text-[11px] font-black transition ${
+                item.raised ? "-mt-3 rounded-xl bg-brand-600 py-2.5 text-white shadow-glow ring-2 ring-accent-yellow" : isActive ? "text-brand-700" : "text-gray-500"
               }`
             }
           >
-            <item.icon size={20} />
+            <item.icon size={19} />
             <CountBadge value={item.badge ?? 0} />
             <span>{item.label}</span>
           </NavLink>
@@ -275,8 +275,8 @@ export function MobileNav() {
 export function Footer() {
   return (
     <footer className="border-t border-accent-ink bg-accent-ink text-white">
-      <div className="mx-auto grid max-w-[1500px] gap-6 px-4 py-10 text-sm text-gray-300 md:grid-cols-5 lg:grid-cols-[1.4fr_repeat(9,auto)] lg:px-8">
-        <div>
+      <div className="mx-auto grid max-w-[1500px] grid-cols-2 gap-x-4 gap-y-3 px-4 py-7 text-sm text-gray-300 md:grid-cols-5 md:gap-6 md:py-10 lg:grid-cols-[1.4fr_repeat(9,auto)] lg:px-8">
+        <div className="col-span-2 mb-2 md:col-span-1 md:mb-0">
           <Brand inverted />
           <p className="mt-3 text-gray-400">Encontre. Venda. Confie.</p>
         </div>

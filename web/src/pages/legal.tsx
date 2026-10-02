@@ -34,7 +34,7 @@ function LegalDocument({
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8 lg:py-12">
       <header className="border-b border-gray-200 pb-7">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-700">{eyebrow}</p>
-        <h1 className="mt-2 max-w-3xl text-3xl font-black text-gray-950 md:text-5xl">{title}</h1>
+        <h1 className="mt-2 max-w-3xl text-2xl font-black text-gray-950 md:text-5xl">{title}</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-gray-600">{summary}</p>
         <p className="mt-3 text-sm font-bold text-gray-500">Versão em vigor: {LEGAL_VERSION}</p>
       </header>
@@ -410,7 +410,7 @@ export function ContactPage() {
       <main className="mx-auto flex w-full max-w-3xl flex-1 items-center px-4 py-12 lg:px-8">
         <div className="w-full border-y border-gray-200 py-10 text-center">
           <CheckCircle2 className="mx-auto text-brand-700" size={42} />
-          <h1 className="mt-4 text-3xl font-black text-gray-950">Pedido recebido</h1>
+          <h1 className="mt-4 text-2xl font-black text-gray-950 md:text-3xl">Pedido recebido</h1>
           <p className="mt-2 text-gray-600">Guarde a referência <strong className="text-gray-950">{submit.data.reference}</strong>. A resposta será enviada para {submit.data.email}.</p>
           <Button className="mt-6" variant="secondary" onClick={() => { submit.reset(); setForm((current) => ({ ...current, subject: "", message: "" })); }}>
             Novo pedido
@@ -425,7 +425,7 @@ export function ContactPage() {
       <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr]">
         <section>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-700">Apoio NhongAqui</p>
-          <h1 className="mt-2 text-4xl font-black text-gray-950">Como podemos ajudar?</h1>
+          <h1 className="mt-2 text-3xl font-black text-gray-950 md:text-4xl">Como podemos ajudar?</h1>
           <p className="mt-4 leading-7 text-gray-600">Envie detalhes suficientes, mas nunca inclua palavra-passe, PIN, código de autenticação ou dados bancários completos.</p>
           <div className="mt-7 space-y-5 border-t border-gray-200 pt-6">
             <div className="flex gap-3"><Headphones className="shrink-0 text-brand-700" /><div><p className="font-black text-gray-950">Canal oficial</p><p className="text-sm text-gray-600">Este formulário cria um pedido com referência e fica disponível para a equipa de administração.</p></div></div>
@@ -496,7 +496,7 @@ export function AccountDeletionPage() {
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 lg:px-8 lg:py-12">
       <header className="border-b border-gray-200 pb-7">
         <p className="text-xs font-black uppercase tracking-[0.16em] text-accent-red">Conta e dados</p>
-        <h1 className="mt-2 text-3xl font-black text-gray-950 md:text-5xl">Eliminar conta</h1>
+        <h1 className="mt-2 text-2xl font-black text-gray-950 md:text-5xl">Eliminar conta</h1>
         <p className="mt-4 max-w-3xl leading-7 text-gray-600">
           Este processo elimina definitivamente a conta, os anuncios, fotografias, mensagens, favoritos,
           avaliacoes e documentos de verificacao associados. A operacao nao pode ser anulada.

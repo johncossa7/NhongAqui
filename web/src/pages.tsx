@@ -21,6 +21,7 @@ import {
   Search,
   ShieldCheck,
   Share2,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   Upload,
@@ -62,7 +63,7 @@ const conditionLabels: Record<string, string> = {
 
 function Shell({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
   return (
-    <main className={`mx-auto min-w-0 w-full flex-1 ${narrow ? "max-w-3xl" : "max-w-[1500px]"} px-4 py-5 md:py-8 lg:px-8`}>
+    <main className={`mx-auto min-w-0 w-full flex-1 ${narrow ? "max-w-3xl" : "max-w-[1500px]"} px-3 py-4 md:px-4 md:py-8 lg:px-8`}>
       {children}
     </main>
   );
@@ -114,7 +115,7 @@ function FeaturedTile({ product, large = false, badge = "Destaque" }: { product:
   return (
     <Link
       to={`/produto/${product.slug}`}
-      className={`group relative overflow-hidden rounded-3xl bg-gray-200 ${large ? "row-span-2 min-h-80" : "min-h-40"}`}
+      className={`group relative overflow-hidden rounded-xl bg-gray-200 md:rounded-3xl ${large ? "row-span-2 min-h-52 md:min-h-80" : "min-h-24 md:min-h-40"}`}
     >
       <img
         className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
@@ -124,12 +125,12 @@ function FeaturedTile({ product, large = false, badge = "Destaque" }: { product:
           event.currentTarget.src = fallbackImage(product.id);
         }}
       />
-      <div className="absolute left-3 top-3 rounded-full bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-brand-700">
+      <div className="absolute left-2 top-2 rounded-full bg-white px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-brand-700 md:left-3 md:top-3 md:text-[10px]">
         {badge}
       </div>
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-950/90 to-transparent p-4 text-white">
-        <p className="line-clamp-1 text-sm font-black uppercase tracking-[0.08em]">{product.title}</p>
-        <p className="mt-1 text-lg font-black">{Number(product.price).toLocaleString("pt-MZ")} MT</p>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-950/90 to-transparent p-2.5 text-white md:p-4">
+        <p className="line-clamp-1 text-[11px] font-black uppercase tracking-[0.08em] md:text-sm">{product.title}</p>
+        <p className="mt-0.5 text-sm font-black md:mt-1 md:text-lg">{Number(product.price).toLocaleString("pt-MZ")} MT</p>
       </div>
     </Link>
   );
@@ -146,21 +147,21 @@ export function HomePage() {
 
   return (
     <Shell>
-      <section className="grid gap-8 rounded-[2rem] border border-gray-200 bg-white p-4 shadow-soft md:grid-cols-[1.02fr_0.98fr] md:items-center md:p-8">
-        <div className="space-y-7">
+      <section className="grid gap-6 rounded-2xl border border-gray-200 bg-white p-3.5 shadow-soft md:grid-cols-[1.02fr_0.98fr] md:items-center md:gap-8 md:rounded-[2rem] md:p-8">
+        <div className="space-y-5 md:space-y-7">
           <div>
             <p className="inline-flex rounded-full bg-brand-50 px-3 py-1.5 text-xs font-black uppercase tracking-[0.18em] text-brand-700">
               Marketplace para Mocambique
             </p>
-            <h1 className="mt-4 max-w-2xl text-4xl font-black leading-[0.95] tracking-[-0.02em] text-accent-ink md:text-6xl">
+            <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-accent-ink md:mt-4 md:text-6xl md:leading-[0.95]">
               Compra e venda com conversa direta.
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-gray-600">
+            <p className="mt-3 max-w-xl text-base leading-6 text-gray-600 md:mt-5 md:text-lg md:leading-8">
               Publique produtos em minutos, explore oportunidades por cidade e fale com compradores ou vendedores no mesmo lugar.
             </p>
           </div>
           <SearchBar />
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-2.5 md:gap-3">
             <Link to="/shop">
               <Button>
                 Explorar produtos
@@ -169,38 +170,38 @@ export function HomePage() {
             </Link>
             <Link to="/vender"><Button variant="secondary">Vender agora</Button></Link>
           </div>
-          <div className="flex max-w-xl items-start gap-3 border-l-4 border-brand-600 py-1 pl-4 text-sm leading-6 text-gray-600">
+          <div className="flex max-w-xl items-start gap-2.5 border-l-4 border-brand-600 py-0.5 pl-3 text-xs leading-5 text-gray-600 md:gap-3 md:py-1 md:pl-4 md:text-sm md:leading-6">
             <ShieldCheck className="mt-0.5 shrink-0 text-brand-700" size={20} />
             <p>Combine a entrega num local publico e confirme o produto antes de pagar.</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 rounded-[1.5rem] bg-accent-ink p-3">
+        <div className="grid grid-cols-2 gap-2 rounded-xl bg-accent-ink p-2 md:gap-3 md:rounded-[1.5rem] md:p-3">
           {showcase[0] ? <FeaturedTile product={showcase[0]} large badge={showcaseBadge} /> : null}
           {showcase.slice(1).map((product) => <FeaturedTile key={product.id} product={product} badge={showcaseBadge} />)}
         </div>
       </section>
 
-      <section className="mt-12">
+      <section className="mt-8 md:mt-12">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-700">Explorar</p>
-            <h2 className="text-3xl font-black uppercase tracking-[-0.02em] text-gray-950">Categorias populares</h2>
+            <h2 className="text-2xl font-black uppercase leading-tight text-gray-950 md:text-3xl">Categorias populares</h2>
           </div>
           <Link to="/shop" className="inline-flex items-center gap-1 text-xs font-black uppercase tracking-[0.16em] text-gray-950 hover:text-brand-700">
             Ver todas
             <ArrowRight size={16} />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2.5 md:grid-cols-4 md:gap-3 lg:grid-cols-7">
           {(categories.data ?? []).slice(0, 14).map((category) => <CategoryCard key={category.id} category={category} />)}
         </div>
       </section>
 
-      <section className="mt-12">
+      <section className="mt-8 md:mt-12">
         <div className="mb-4 flex items-end justify-between gap-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-700">Novidades</p>
-            <h2 className="text-3xl font-black uppercase tracking-[-0.02em] text-gray-950">Produtos recentes</h2>
+            <h2 className="text-2xl font-black uppercase leading-tight text-gray-950 md:text-3xl">Produtos recentes</h2>
           </div>
           <Link to="/shop?ordering=-created_at" className="hidden text-xs font-black uppercase tracking-[0.16em] text-gray-950 hover:text-brand-700 sm:inline">
             Ver mais
@@ -214,6 +215,7 @@ export function HomePage() {
 
 export function ShopPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const categories = useCategories();
   const params = useMemo(
     () => ({
@@ -237,14 +239,15 @@ export function ShopPage() {
       if (value) next.set(key, String(value));
     });
     setSearchParams(next);
+    setFiltersOpen(false);
   }
 
   return (
     <Shell>
-      <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-soft md:mb-6 md:flex-row md:items-end md:justify-between md:gap-4 md:rounded-[1.5rem] md:p-5">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Comprar</p>
-          <h1 className="text-3xl font-black tracking-tight text-accent-ink md:text-4xl">Explorar produtos</h1>
+          <h1 className="text-2xl font-black text-accent-ink md:text-4xl">Explorar produtos</h1>
           <p className="mt-1 text-sm text-gray-600">Procure, filtre e guarde os produtos que quer ver depois.</p>
         </div>
         <Link to="/vender">
@@ -254,8 +257,17 @@ export function ShopPage() {
           </Button>
         </Link>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
-        <form onSubmit={update} className="space-y-3 rounded-[1.5rem] border border-gray-200 bg-white p-4 shadow-soft lg:sticky lg:top-24 lg:self-start">
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr] lg:gap-6">
+        <button
+          type="button"
+          className="flex min-h-11 items-center justify-between rounded-xl border border-gray-200 bg-white px-4 text-sm font-black text-gray-950 shadow-soft lg:hidden"
+          aria-expanded={filtersOpen}
+          onClick={() => setFiltersOpen((value) => !value)}
+        >
+          <span className="inline-flex items-center gap-2"><SlidersHorizontal size={18} />Filtros</span>
+          <span className="text-xs text-brand-700">{filtersOpen ? "Fechar" : "Abrir"}</span>
+        </button>
+        <form onSubmit={update} className={`${filtersOpen ? "block" : "hidden"} space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-soft lg:sticky lg:top-24 lg:block lg:self-start lg:rounded-[1.5rem]`}>
           <div className="mb-1 flex items-center justify-between">
             <h2 className="font-black text-gray-950">Filtros</h2>
             <button
@@ -295,14 +307,14 @@ export function ShopPage() {
           <Button type="submit" className="w-full"><Search size={18} /> Filtrar</Button>
         </form>
         <section>
-          <div className="mb-4 flex items-center justify-between rounded-[1.25rem] border border-gray-200 bg-white px-4 py-3 shadow-soft">
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-soft md:mb-4 md:rounded-[1.25rem] md:px-4 md:py-3">
             <p className="text-sm font-bold text-gray-950">
               {products.isLoading ? "A carregar produtos..." : `${products.data?.length ?? 0} resultados nesta pagina`}
             </p>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-brand-700">NhongAqui</p>
+            <p className="hidden text-xs font-black uppercase tracking-[0.16em] text-brand-700 sm:block">NhongAqui</p>
           </div>
           {products.isLoading ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-7 md:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-x-2.5 gap-y-4 md:grid-cols-3 md:gap-x-4 md:gap-y-7 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, index) => <SkeletonCard key={index} />)}
             </div>
           ) : products.isError ? (
@@ -398,9 +410,9 @@ export function ProductPage() {
 
   return (
     <Shell>
-      <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-3">
-          <div className="relative overflow-hidden rounded-[1.5rem] bg-white shadow-soft">
+          <div className="relative overflow-hidden rounded-xl bg-white shadow-soft md:rounded-[1.5rem]">
             <img
               className="aspect-[4/3] w-full object-cover"
               src={selectedImage?.image ?? productImage(product.data)}
@@ -452,11 +464,11 @@ export function ProductPage() {
             ) : null}
           </div>
         </div>
-        <Card className="p-5 shadow-soft">
+        <Card className="p-4 shadow-soft md:p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-950">{product.data.title}</h1>
-              <p className="mt-2 text-2xl"><PriceDisplay value={product.data.price} /></p>
+              <h1 className="text-2xl font-bold leading-tight text-gray-950 md:text-3xl">{product.data.title}</h1>
+              <p className="mt-1.5 text-xl md:mt-2 md:text-2xl"><PriceDisplay value={product.data.price} /></p>
             </div>
             <Button variant="secondary" onClick={() => void favoriteMutation.mutate()} aria-label="Favorito">
               <Heart size={20} className={currentFavorite ? "fill-brand-500 text-brand-500" : ""} />
@@ -469,7 +481,7 @@ export function ProductPage() {
           </div>
           <p className="mt-4 text-gray-700">{product.data.description}</p>
           <div className="mt-4"><LocationDisplay city={product.data.city} neighborhood={product.data.neighborhood} /></div>
-          <div className="mt-5 rounded-2xl border border-gray-200 bg-accent-cream p-4">
+          <div className="mt-4 rounded-xl border border-gray-200 bg-accent-cream p-3 md:mt-5 md:rounded-2xl md:p-4">
             <div className="flex items-center justify-between gap-3">
               <Link to={`/vendedor/${seller.id}`} className="flex items-center gap-3">
                 <span className="flex size-11 items-center justify-center rounded-md bg-gray-100"><UserRound size={22} /></span>
@@ -675,10 +687,10 @@ export function SellPage() {
 
   return (
     <Shell>
-      <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-soft md:mb-6 md:flex-row md:items-end md:justify-between md:gap-4 md:rounded-[1.5rem] md:p-5">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Vender</p>
-          <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Publicar anuncio</h1>
+          <h1 className="text-2xl font-black text-gray-950 md:text-4xl">Publicar anuncio</h1>
           <p className="mt-1 text-sm text-gray-600">Adicione fotos reais, preco e localizacao para criar um anuncio completo.</p>
         </div>
         <div className="flex items-center gap-2 rounded-md bg-brand-50 px-3 py-2 text-sm font-bold text-brand-700">
@@ -997,9 +1009,9 @@ export function AdminPage() {
 
   return (
     <Shell>
-      <div className="mb-6 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft">
+      <div className="mb-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-soft md:mb-6 md:rounded-[1.5rem] md:p-5">
         <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Administracao</p>
-        <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Painel Admin</h1>
+        <h1 className="text-2xl font-black text-gray-950 md:text-4xl">Painel Admin</h1>
         <p className="mt-1 text-sm text-gray-600">Gerir anuncios, contas e atividade da plataforma.</p>
       </div>
       {adminAction.error instanceof Error ? (
@@ -1292,7 +1304,7 @@ export function MessagesPage() {
   return (
     <Shell>
       <div className="mb-5">
-        <h1 className="text-3xl font-black text-gray-950">Mensagens</h1>
+        <h1 className="text-2xl font-black text-gray-950 md:text-3xl">Mensagens</h1>
         <p className="mt-1 text-sm text-gray-600">Combine detalhes, entrega e pagamento diretamente com compradores e vendedores.</p>
       </div>
       <div className="grid min-h-[520px] gap-4 lg:grid-cols-[320px_1fr]">
@@ -1379,7 +1391,7 @@ export function NotificationsPage() {
     <Shell narrow>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-black text-gray-950">Notificacoes</h1>
+          <h1 className="text-2xl font-black text-gray-950 md:text-3xl">Notificacoes</h1>
           <p className="mt-1 text-sm text-gray-600">{unread ? `${unread} por ler` : "Esta tudo em dia."}</p>
         </div>
         <Button variant="secondary" disabled={!unread || markAllRead.isPending} onClick={() => void markAllRead.mutate()}>
@@ -1931,10 +1943,10 @@ export function MyListingsPage() {
   };
   return (
     <Shell>
-      <div className="mb-6 flex flex-col gap-4 rounded-[1.5rem] border border-gray-200 bg-white p-5 shadow-soft md:flex-row md:items-end md:justify-between">
+      <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-soft md:mb-6 md:flex-row md:items-end md:justify-between md:gap-4 md:rounded-[1.5rem] md:p-5">
         <div>
           <p className="text-sm font-black uppercase tracking-[0.16em] text-brand-700">Vendedor</p>
-          <h1 className="text-3xl font-black tracking-tight text-gray-950 md:text-4xl">Minhas vendas</h1>
+          <h1 className="text-2xl font-black text-gray-950 md:text-4xl">Minhas vendas</h1>
           <p className="mt-1 text-sm text-gray-600">Veja os seus produtos, edite o anuncio e responda aos compradores interessados.</p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-black uppercase tracking-[0.12em] text-gray-500">
             <span className="rounded-full bg-gray-100 px-3 py-1">{products.data?.length ?? 0} produtos publicados</span>
@@ -2146,7 +2158,7 @@ export function InfoPage({ title, legal = false }: { title: string; legal?: bool
   useEffect(() => setSeo(title, `${title} - NhongAqui`), [title]);
   return (
     <Shell narrow>
-      <h1 className="mb-4 text-3xl font-bold">{title}</h1>
+      <h1 className="mb-4 text-2xl font-bold md:text-3xl">{title}</h1>
       <div className="space-y-4 rounded-2xl bg-white p-5 text-gray-700 shadow-soft">
         <p>NhongAqui e um marketplace digital criado para ajudar compradores e vendedores em Mocambique a encontrarem oportunidades com mais confianca.</p>
         {legal ? (

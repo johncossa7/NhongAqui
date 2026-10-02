@@ -33,7 +33,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
-import marketplaceHero from "./assets/branding/marketplace-hero.jpg";
+import marketplaceHero from "./assets/images/nhongaqui-hero-mockup.jpg";
 import { CategoryCard, LocationDisplay, PriceDisplay, ProductGrid, ReviewStars, VerifiedBadge } from "./components/product";
 import { Button, Card, EmptyState, Input, Select, SkeletonCard, Textarea } from "./components/ui";
 import { API_URL, apiRequest, normalizePage, toQuery } from "./lib/api";
@@ -147,9 +147,9 @@ export function HomePage() {
             <p>Combine a entrega num local publico e confirme o produto antes de pagar.</p>
           </div>
         </div>
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-soft md:rounded-[1.5rem]">
+        <div className="hidden overflow-hidden rounded-xl border border-gray-200 bg-white shadow-soft md:block md:rounded-[1.5rem]">
           <img
-            className="aspect-[3/2] h-full w-full object-cover"
+            className="aspect-[3/2] h-full w-full object-contain object-center"
             src={marketplaceHero}
             alt="Produtos disponíveis no marketplace NhongAqui"
           />

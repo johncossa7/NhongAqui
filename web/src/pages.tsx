@@ -33,6 +33,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
+import marketplaceHero from "./assets/branding/marketplace-hero.jpg";
 import { CategoryCard, LocationDisplay, PriceDisplay, ProductGrid, ReviewStars, VerifiedBadge } from "./components/product";
 import { Button, Card, EmptyState, Input, Select, SkeletonCard, Textarea } from "./components/ui";
 import { API_URL, apiRequest, normalizePage, toQuery } from "./lib/api";
@@ -111,39 +112,10 @@ function SearchBar({ initial = "" }: { initial?: string }) {
   );
 }
 
-function FeaturedTile({ product, large = false, badge = "Destaque" }: { product: Product; large?: boolean; badge?: string }) {
-  return (
-    <Link
-      to={`/produto/${product.slug}`}
-      className={`group relative overflow-hidden rounded-xl bg-gray-200 md:rounded-3xl ${large ? "row-span-2 min-h-52 md:min-h-80" : "min-h-24 md:min-h-40"}`}
-    >
-      <img
-        className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
-        src={productImage(product)}
-        alt={product.title}
-        onError={(event) => {
-          event.currentTarget.src = fallbackImage(product.id);
-        }}
-      />
-      <div className="absolute left-2 top-2 rounded-full bg-white px-2 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-brand-700 md:left-3 md:top-3 md:text-[10px]">
-        {badge}
-      </div>
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-gray-950/90 to-transparent p-2.5 text-white md:p-4">
-        <p className="line-clamp-1 text-[11px] font-black uppercase tracking-[0.08em] md:text-sm">{product.title}</p>
-        <p className="mt-0.5 text-sm font-black md:mt-1 md:text-lg">{Number(product.price).toLocaleString("pt-MZ")} MT</p>
-      </div>
-    </Link>
-  );
-}
-
 export function HomePage() {
   useEffect(() => setSeo("Encontre. Venda. Confie.", "Um mercado digital feito para Mocambique."), []);
   const categories = useCategories();
-  const featured = useProducts({ featured: true, page_size: 4 });
   const recent = useProducts({ page_size: 8, ordering: "-created_at" });
-  const hasFeaturedProducts = Boolean(featured.data?.length);
-  const showcase = (hasFeaturedProducts ? featured.data ?? [] : recent.data ?? []).slice(0, 3);
-  const showcaseBadge = hasFeaturedProducts ? "Destaque" : "Recente";
 
   return (
     <Shell>
@@ -157,7 +129,7 @@ export function HomePage() {
               ENCONTRE. VENDA. CONFIE.
             </h1>
             <p className="mt-3 max-w-xl text-base leading-6 text-gray-600 md:mt-5 md:text-lg md:leading-8">
-              Produtos locais, negocios reais, oportunidade para todos.
+              Produtos locais, negócios reais, oportunidade para todos.
             </p>
           </div>
           <SearchBar />
@@ -175,9 +147,12 @@ export function HomePage() {
             <p>Combine a entrega num local publico e confirme o produto antes de pagar.</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 rounded-xl bg-accent-ink p-2 md:gap-3 md:rounded-[1.5rem] md:p-3">
-          {showcase[0] ? <FeaturedTile product={showcase[0]} large badge={showcaseBadge} /> : null}
-          {showcase.slice(1).map((product) => <FeaturedTile key={product.id} product={product} badge={showcaseBadge} />)}
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100 shadow-soft md:rounded-[1.5rem]">
+          <img
+            className="aspect-[3/2] h-full w-full object-cover"
+            src={marketplaceHero}
+            alt="Comprador e vendedor a verificar um telemóvel"
+          />
         </div>
       </section>
 

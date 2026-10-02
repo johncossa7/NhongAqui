@@ -154,10 +154,10 @@ export function HomePage() {
               Marketplace para Mocambique
             </p>
             <h1 className="mt-3 max-w-2xl text-3xl font-black leading-tight text-accent-ink md:mt-4 md:text-6xl md:leading-[0.95]">
-              Compra e venda com conversa direta.
+              ENCONTRE. VENDA. CONFIE.
             </h1>
             <p className="mt-3 max-w-xl text-base leading-6 text-gray-600 md:mt-5 md:text-lg md:leading-8">
-              Publique produtos em minutos, explore oportunidades por cidade e fale com compradores ou vendedores no mesmo lugar.
+              Produtos locais, negocios reais, oportunidade para todos.
             </p>
           </div>
           <SearchBar />

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, ExternalLink, Headphones, Scale, Send, ShieldCheck, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, Headphones, Send, ShieldCheck, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -60,7 +60,6 @@ function LegalDocument({
           ))}
         </article>
       </div>
-      <LegalNotice />
     </main>
   );
 }
@@ -578,14 +577,5 @@ export function AccountDeletionPage() {
         </form>
       )}
     </main>
-  );
-}
-
-export function LegalNotice() {
-  return (
-    <div className="flex items-start gap-3 border-l-4 border-accent-yellow bg-yellow-50 p-4 text-sm text-yellow-950">
-      <Scale className="shrink-0" size={20} />
-      <p>Estes documentos são uma base operacional e devem ser revistos por um advogado moçambicano antes do lançamento comercial.</p>
-    </div>
   );
 }

@@ -9,7 +9,6 @@ import {
   CheckCheck,
   CheckCircle2,
   Clock3,
-  Crown,
   Flag,
   Heart,
   ImagePlus,
@@ -22,7 +21,6 @@ import {
   ShieldCheck,
   Share2,
   SlidersHorizontal,
-  Sparkles,
   Trash2,
   Upload,
   UserRound,
@@ -60,6 +58,15 @@ const conditionLabels: Record<string, string> = {
   good: "Bom estado",
   used: "Usado",
   parts: "Para pecas"
+};
+
+const productStatusLabels: Record<string, string> = {
+  draft: "Rascunho",
+  pending_review: "Em analise",
+  active: "Ativo",
+  reserved: "Reservado",
+  sold: "Vendido",
+  suspended: "Suspenso"
 };
 
 function Shell({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
@@ -379,6 +386,7 @@ export function ProductPage() {
 
   const currentFavorite = favorites.data?.find((item) => item.product.id === product.data.id);
   const seller = product.data.seller;
+  const isSold = product.data.status === "sold";
   const galleryImages = product.data.images.slice(0, maxProductImages);
   const selectedImage = galleryImages.find((image) => image.id === selectedImageId) ?? galleryImages[0];
   const selectedImageIndex = selectedImage ? galleryImages.findIndex((image) => image.id === selectedImage.id) : -1;
@@ -450,6 +458,11 @@ export function ProductPage() {
             </Button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2 text-sm">
+            {product.data.status !== "active" ? (
+              <span className={`rounded-full px-3 py-1 font-black ${isSold ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-800"}`}>
+                {productStatusLabels[product.data.status] ?? product.data.status}
+              </span>
+            ) : null}
             <span className="rounded-full bg-brand-50 px-3 py-1 font-bold text-brand-700">{conditionLabels[product.data.condition]}</span>
             <span className="rounded-full bg-accent-cream px-3 py-1 font-bold text-gray-700">{product.data.negotiable ? "Negociavel" : "Preco fixo"}</span>
             <span className="rounded-full bg-accent-cream px-3 py-1 font-bold text-gray-700">{product.data.views_count} vistas</span>
@@ -469,7 +482,7 @@ export function ProductPage() {
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            <Button onClick={() => void contactSeller()}><MessageCircle size={18} /> Contactar</Button>
+            <Button disabled={isSold} onClick={() => void contactSeller()}><MessageCircle size={18} /> {isSold ? "Produto vendido" : "Contactar"}</Button>
             <Button variant="secondary" onClick={() => void navigator.share?.({ title: product.data?.title, url: location.href })}><Share2 size={18} /> Partilhar</Button>
             <Button variant="ghost" onClick={() => setReportOpen((value) => !value)}><Flag size={18} /> Denunciar</Button>
             <Button variant="ghost" onClick={() => setReviewOpen((value) => !value)}>Avaliar</Button>
@@ -541,36 +554,11 @@ const maxProductImages = 8;
 const maxImageSizeMb = 5;
 const maxImageSizeBytes = maxImageSizeMb * 1024 * 1024;
 
-const promotionPlans = [
-  {
-    id: "standard",
-    name: "Anuncio normal",
-    price: "Gratis",
-    description: "Aparece na pesquisa e na categoria escolhida.",
-    icon: CheckCircle2
-  },
-  {
-    id: "boost",
-    name: "Destaque local",
-    price: "A definir",
-    description: "Mais visibilidade na cidade e categoria.",
-    icon: Crown
-  },
-  {
-    id: "premium",
-    name: "Topo da lista",
-    price: "A definir",
-    description: "Posicao premium para vender mais rapido.",
-    icon: Sparkles
-  }
-];
-
 export function SellPage() {
   const categories = useCategories();
   const auth = useAuth();
   const navigate = useNavigate();
   const [files, setFiles] = useState<File[]>([]);
-  const [promotion, setPromotion] = useState("standard");
   const [localError, setLocalError] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
@@ -798,29 +786,6 @@ export function SellPage() {
             <Input placeholder="Bairro ou zona" value={form.neighborhood} onChange={(event) => setForm({ ...form, neighborhood: event.target.value })} />
           </Card>
 
-          <Card className="space-y-4 p-5 shadow-soft">
-            <div>
-              <h2 className="text-xl font-black text-gray-950">Promover anuncio</h2>
-              <p className="mt-1 text-sm text-gray-500">Escolha como pretende destacar o produto quando a promocao estiver ativa.</p>
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              {promotionPlans.map((plan) => (
-                <button
-                  key={plan.id}
-                  type="button"
-                  className={`rounded-2xl border p-4 text-left transition hover:border-brand-600 ${
-                    promotion === plan.id ? "border-brand-600 bg-brand-600 text-white" : "border-gray-200 bg-white"
-                  }`}
-                  onClick={() => setPromotion(plan.id)}
-                >
-                  <plan.icon className={promotion === plan.id ? "text-brand-100" : "text-brand-600"} size={22} />
-                  <span className="mt-3 block text-sm font-black">{plan.name}</span>
-                  <span className={`mt-1 block text-sm font-bold ${promotion === plan.id ? "text-brand-100" : "text-brand-700"}`}>{plan.price}</span>
-                  <span className={`mt-2 block text-xs leading-5 ${promotion === plan.id ? "text-gray-200" : "text-gray-500"}`}>{plan.description}</span>
-                </button>
-              ))}
-            </div>
-          </Card>
         </div>
 
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
@@ -1908,6 +1873,7 @@ export function MyListingsPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["my-products"] });
       await queryClient.invalidateQueries({ queryKey: ["seller-conversations"] });
+      await queryClient.invalidateQueries({ queryKey: ["products"] });
     }
   });
   const updateProductCache = (updatedProduct: Product) => {
@@ -1965,7 +1931,9 @@ export function MyListingsPage() {
               <div className="min-w-0">
                 <Link to={`/produto/${product.slug}`} className="text-lg font-black text-gray-950 hover:text-brand-700">{product.title}</Link>
                 <div className="mt-1 flex flex-wrap gap-2 text-sm text-gray-500">
-                  <span>{product.status}</span>
+                  <span className={product.status === "sold" ? "font-black text-red-700" : undefined}>
+                    {productStatusLabels[product.status] ?? product.status}
+                  </span>
                   <span>{product.images.length} foto{product.images.length === 1 ? "" : "s"}</span>
                   {product.images.some((image) => image.moderation_status === "pending") ? (
                     <span className="font-bold text-amber-700">Fotos em analise</span>
@@ -1985,8 +1953,12 @@ export function MyListingsPage() {
                 <Button variant="secondary" onClick={() => setEditingId(product.id)}>
                   Editar
                 </Button>
-                <Button variant="secondary" onClick={() => void action.mutate({ slug: product.slug, next: "mark_reserved" })}>Reservar</Button>
-                <Button onClick={() => void action.mutate({ slug: product.slug, next: "mark_sold" })}>Vendido</Button>
+                {product.status === "active" ? (
+                  <Button variant="secondary" onClick={() => void action.mutate({ slug: product.slug, next: "mark_reserved" })}>Reservar</Button>
+                ) : null}
+                {product.status !== "sold" ? (
+                  <Button onClick={() => void action.mutate({ slug: product.slug, next: "mark_sold" })}>Marcar como vendido</Button>
+                ) : null}
               </div>
             </Card>
           )

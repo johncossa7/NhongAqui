@@ -50,6 +50,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             return queryset.filter(seller=self.request.user)
         if self.request.query_params.get("mine") == "true" and self.request.user.is_authenticated:
             return queryset.filter(seller=self.request.user)
+        if self.action == "list":
+            return queryset.filter(status__in=[Product.Status.ACTIVE, Product.Status.RESERVED])
         return queryset.filter(status__in=[Product.Status.ACTIVE, Product.Status.RESERVED, Product.Status.SOLD])
 
     def _normalize_images(self, product):

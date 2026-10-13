@@ -381,3 +381,46 @@ def test_interested_buyers_are_notified_when_product_is_reserved_or_sold(categor
     sold = client.post(f"/api/v1/products/{product.slug}/mark_sold/")
     assert sold.status_code == 200
     assert Notification.objects.filter(user=other_user, kind=Notification.Kind.PRODUCT_SOLD).count() == 1
+
+
+@pytest.mark.django_db
+def test_sold_products_are_hidden_from_public_lists_but_remain_available(category, seller):
+    active_product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto disponivel",
+        description="Produto ainda a venda.",
+        price="2500.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.ACTIVE,
+    )
+    sold_product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto vendido",
+        description="Produto que ja foi vendido.",
+        price="3500.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.SOLD,
+    )
+    client = APIClient()
+
+    public_list = client.get("/api/v1/products/")
+
+    assert public_list.status_code == 200
+    public_slugs = {item["slug"] for item in public_list.data["results"]}
+    assert active_product.slug in public_slugs
+    assert sold_product.slug not in public_slugs
+
+    sold_detail = client.get(f"/api/v1/products/{sold_product.slug}/")
+    assert sold_detail.status_code == 200
+    assert sold_detail.data["status"] == Product.Status.SOLD
+
+    client.force_authenticate(seller)
+    seller_list = client.get("/api/v1/products/mine/")
+    seller_slugs = {item["slug"] for item in seller_list.data["results"]}
+    assert sold_product.slug in seller_slugs

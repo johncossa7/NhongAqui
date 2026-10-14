@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import SellerProfile
 from categories.models import Category
+from messaging.models import Conversation
 from products.models import Product
 
 User = get_user_model()
@@ -27,6 +28,7 @@ def test_user_can_review_seller_product():
         city="Maputo",
         status=Product.Status.SOLD,
     )
+    Conversation.objects.create(product=product, buyer=buyer, seller=seller)
 
     client = APIClient()
     client.force_authenticate(buyer)
@@ -37,3 +39,42 @@ def test_user_can_review_seller_product():
     )
     assert response.status_code == 201
     assert response.data["rating"] == 5
+
+
+@pytest.mark.django_db
+def test_review_requires_a_sold_product_and_a_buyer_conversation():
+    seller = User.objects.create_user(email="review-seller@example.com", password="Password123!")
+    buyer = User.objects.create_user(email="review-buyer@example.com", password="Password123!")
+    SellerProfile.objects.create(user=seller, display_name="Seller")
+    SellerProfile.objects.create(user=buyer, display_name="Buyer")
+    category = Category.objects.create(name="Avaliacoes")
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto em avaliacao",
+        description="Descricao.",
+        price="18000.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.SOLD,
+    )
+    client = APIClient()
+    client.force_authenticate(buyer)
+
+    no_conversation = client.post(
+        "/api/v1/reviews/",
+        {"product_id": product.id, "rating": 5, "comment": "Sem conversa."},
+        format="json",
+    )
+    assert no_conversation.status_code == 400
+
+    Conversation.objects.create(product=product, buyer=buyer, seller=seller)
+    product.status = Product.Status.ACTIVE
+    product.save(update_fields=["status", "updated_at"])
+    not_sold = client.post(
+        "/api/v1/reviews/",
+        {"product_id": product.id, "rating": 5, "comment": "Ainda ativo."},
+        format="json",
+    )
+    assert not_sold.status_code == 400

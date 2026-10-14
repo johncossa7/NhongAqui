@@ -2,6 +2,8 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.utils import timezone
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
@@ -12,6 +14,17 @@ from .models import SellerProfile, UserBlock
 
 User = get_user_model()
 LEGAL_VERSION = "2026-09-18"
+
+
+def public_display_name(user) -> str:
+    profile = getattr(user, "seller_profile", None)
+    candidate = profile.display_name.strip() if profile else ""
+    if candidate:
+        try:
+            validate_email(candidate)
+        except ValidationError:
+            return candidate
+    return user.first_name.strip() or "Utilizador"
 
 
 class SellerProfileSerializer(serializers.ModelSerializer):
@@ -28,9 +41,16 @@ class SellerProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ["rating_average", "rating_count", "products_sold", "verified"]
 
 
+class PublicSellerProfileSerializer(SellerProfileSerializer):
+    display_name = serializers.SerializerMethodField()
+
+    def get_display_name(self, obj) -> str:
+        return public_display_name(obj.user)
+
+
 class PublicUserSerializer(serializers.ModelSerializer):
-    seller_profile = SellerProfileSerializer(read_only=True)
-    full_name = serializers.CharField(read_only=True)
+    seller_profile = PublicSellerProfileSerializer(read_only=True)
+    full_name = serializers.SerializerMethodField()
     email_verified = serializers.SerializerMethodField()
     is_blocked = serializers.SerializerMethodField()
 
@@ -39,11 +59,7 @@ class PublicUserSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "full_name",
-            "first_name",
-            "last_name",
             "city",
-            "province",
-            "neighborhood",
             "account_type",
             "verification_status",
             "email_verified",
@@ -51,6 +67,9 @@ class PublicUserSerializer(serializers.ModelSerializer):
             "avatar",
             "seller_profile",
         ]
+
+    def get_full_name(self, obj) -> str:
+        return public_display_name(obj)
 
     def get_email_verified(self, obj) -> bool:
         return obj.email_verified_at is not None
@@ -63,9 +82,16 @@ class PublicUserSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(PublicUserSerializer):
+    full_name = serializers.CharField(read_only=True)
+    seller_profile = SellerProfileSerializer(read_only=True)
+
     class Meta(PublicUserSerializer.Meta):
         fields = PublicUserSerializer.Meta.fields + [
             "email",
+            "first_name",
+            "last_name",
+            "province",
+            "neighborhood",
             "email_verified_at",
             "phone",
             "is_staff",

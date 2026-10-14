@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from accounts.models import SellerProfile
 from accounts.serializers import PublicUserSerializer
+from messaging.models import Conversation
 from products.models import Product
 from products.serializers import ProductSummarySerializer
 
@@ -14,7 +15,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     reviewed_user = PublicUserSerializer(read_only=True)
     product = ProductSummarySerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.filter(status__in=["reserved", "sold", "active"]),
+        queryset=Product.objects.exclude(status=Product.Status.DELETED),
         source="product",
         write_only=True,
     )
@@ -37,6 +38,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         if product.seller_id == user.id:
             raise serializers.ValidationError("Nao pode avaliar o seu proprio anuncio.")
+        if product.status != Product.Status.SOLD:
+            raise serializers.ValidationError("So pode avaliar depois de o produto ser marcado como vendido.")
+        if not Conversation.objects.filter(product=product, buyer=user, seller=product.seller).exists():
+            raise serializers.ValidationError("So pode avaliar um vendedor com quem conversou sobre este produto.")
         if Review.objects.filter(reviewer=user, product=product).exists():
             raise serializers.ValidationError("Ja avaliou este produto.")
         return product

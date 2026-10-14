@@ -47,7 +47,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
 
 class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
-    queryset = User.objects.filter(is_active=True).select_related("seller_profile")
+    queryset = User.objects.filter(is_active=True).select_related("seller_profile").order_by("id")
     serializer_class = PublicUserSerializer
     permission_classes = [permissions.AllowAny]
     search_fields = ("first_name", "last_name", "city", "seller_profile__display_name")
@@ -61,6 +61,8 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.Destr
     def get_permissions(self):
         if self.action == "me":
             return [permissions.IsAuthenticated()]
+        if self.action == "list":
+            return [permissions.IsAdminUser()]
         if self.action == "destroy":
             return [permissions.IsAdminUser()]
         return super().get_permissions()

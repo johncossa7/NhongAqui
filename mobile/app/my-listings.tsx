@@ -25,8 +25,11 @@ export default function MyListingsScreen() {
   const action = useMutation({
     mutationFn: ({ slug, next }: { slug: string; next: "mark_reserved" | "mark_sold" }) =>
       apiRequest("/products/" + slug + "/" + next + "/", { method: "POST" }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: ["my-products"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["product", variables.slug] });
+      void queryClient.invalidateQueries({ queryKey: ["favorites"] });
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
   });

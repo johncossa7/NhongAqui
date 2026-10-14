@@ -36,7 +36,7 @@ Email verification and password recovery are deliberately hidden while transacti
 
 ## Android Release
 
-The Android package is `mz.co.nhongaqui.app`. Production EAS builds use the Railway API and generate an Android App Bundle:
+The Android package is `mz.co.nhongaqui.app`. Production EAS builds use `https://api.nhongaqui.com/api/v1` and generate an Android App Bundle:
 
 ```bash
 cd mobile
@@ -47,6 +47,8 @@ npx eas-cli login
 npx eas-cli build:configure
 npx eas-cli build --platform android --profile production
 ```
+
+Always create a fresh production build after changing `EXPO_PUBLIC_API_URL` or `EXPO_PUBLIC_WEB_URL`. Expo embeds these values in the bundle at build time; changing Railway variables does not repair an existing AAB.
 
 The first EAS configuration command links the local project to the owner's Expo account and adds the generated `extra.eas.projectId` to `app.json`. Do not commit Play service-account keys.
 

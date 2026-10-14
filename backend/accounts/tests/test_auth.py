@@ -294,6 +294,49 @@ def test_profile_requires_authentication():
 
 
 @pytest.mark.django_db
+def test_public_user_profile_does_not_expose_private_identity_fields():
+    seller = User.objects.create_user(
+        email="private-seller@example.com",
+        password="Password123!",
+        first_name="Ana",
+        last_name="Mabunda",
+        phone="+258840000000",
+        province="Maputo",
+        city="Matola",
+        neighborhood="Bairro privado",
+    )
+    SellerProfile.objects.create(user=seller, display_name=seller.email)
+
+    response = APIClient().get(f"/api/v1/users/{seller.id}/")
+
+    assert response.status_code == 200
+    assert response.data["full_name"] == "Ana"
+    assert response.data["seller_profile"]["display_name"] == "Ana"
+    assert response.data["city"] == "Matola"
+    assert not {"email", "first_name", "last_name", "phone", "province", "neighborhood"}.intersection(
+        response.data
+    )
+
+
+@pytest.mark.django_db
+def test_only_admin_can_list_users_and_receives_private_fields():
+    seller = User.objects.create_user(email="listed@example.com", password="Password123!", first_name="Seller")
+    SellerProfile.objects.create(user=seller, display_name="Seller")
+    anonymous = APIClient().get("/api/v1/users/")
+    assert anonymous.status_code in [401, 403]
+
+    admin = User.objects.create_superuser(email="list-admin@example.com", password="Password123!")
+    client = APIClient()
+    client.force_authenticate(admin)
+    response = client.get("/api/v1/users/")
+
+    assert response.status_code == 200
+    listed = next(item for item in response.data["results"] if item["id"] == seller.id)
+    assert listed["email"] == seller.email
+    assert listed["first_name"] == "Seller"
+
+
+@pytest.mark.django_db
 def test_profile_cannot_self_assign_verification_or_admin_permissions():
     user = User.objects.create_user(email="profile@example.com", password="Password123!")
     SellerProfile.objects.create(user=user, display_name="Profile")

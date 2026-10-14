@@ -112,3 +112,40 @@ def test_blocked_users_cannot_start_conversations():
 
     assert response.status_code == 400
     assert Conversation.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_sold_product_rejects_new_conversations_but_existing_chat_stays_open():
+    seller = User.objects.create_user(email="sold-seller@example.com", password="Password123!")
+    buyer = User.objects.create_user(email="sold-buyer@example.com", password="Password123!")
+    new_buyer = User.objects.create_user(email="late-buyer@example.com", password="Password123!")
+    for user in [seller, buyer, new_buyer]:
+        SellerProfile.objects.create(user=user, display_name=user.email.split("@")[0])
+    category = Category.objects.create(name="Vendidos")
+    product = Product.objects.create(
+        seller=seller,
+        category=category,
+        title="Produto vendido",
+        description="Negocio concluido.",
+        price="1000.00",
+        condition=Product.Condition.GOOD,
+        province="Maputo",
+        city="Maputo",
+        status=Product.Status.SOLD,
+    )
+    conversation = Conversation.objects.create(product=product, buyer=buyer, seller=seller)
+    client = APIClient()
+    client.force_authenticate(new_buyer)
+
+    response = client.post("/api/v1/conversations/", {"product_id": product.id}, format="json")
+
+    assert response.status_code == 400
+    assert Conversation.objects.filter(product=product).count() == 1
+
+    client.force_authenticate(buyer)
+    message = client.post(
+        "/api/v1/messages/",
+        {"conversation_id": conversation.id, "content": "Obrigado pelo negocio."},
+        format="json",
+    )
+    assert message.status_code == 201

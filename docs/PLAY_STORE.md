@@ -1,6 +1,6 @@
 # Google Play Release
 
-This checklist reflects the production app as implemented in September 2026. Recheck the Play Console policy notices before every release.
+This checklist reflects the production app as implemented in October 2026. Recheck the Play Console policy notices before every release.
 
 ## Technical status
 
@@ -22,12 +22,15 @@ npx eas-cli build --platform android --profile production
 
 Let EAS manage the Android signing key and keep access to the Expo account protected with two-factor authentication.
 
-First production bundle:
+Current production bundle:
 
-- EAS build: `195096d5-7370-4472-b59e-23b79f6619ec`
-- App version: `1.0.0` (`versionCode 3`)
-- Local file: `mobile/builds/nhongaqui-1.0.0-3.aab`
-- SHA-256: `B551775AFEB05051473EC24B3EC2998FE9FDF25EB8ACF5A2C454F34C841D959B`
+- EAS build: `7c120bac-6973-4433-af0b-bdbe998e0b01`
+- App version: `1.0.0` (`versionCode 5`)
+- Local file: `mobile/builds/nhongaqui-1.0.0-5.aab`
+- SHA-256: `A127B4DC1863C121AD7CAC4880BF5BE32BB3B475226E9D0011AB4BD253D2986D`
+- Verified inside the AAB: `https://api.nhongaqui.com/api/v1` and `https://nhongaqui.com` are present; the previous Railway URLs are absent.
+
+Do not upload `mobile/builds/nhongaqui-1.0.0-3.aab`; that obsolete bundle contains the previous Railway URLs.
 
 ## Store listing draft
 
@@ -98,7 +101,7 @@ Current behaviour:
 
 1. Add the verified developer identity, public support email, phone and address in Play Console.
 2. Replace the provisional operator details in the website Terms and Privacy Policy with the legal name, address, NUIT/company registration where applicable, and public support contact.
-3. Upload `mobile/builds/nhongaqui-1.0.0-3.aab` to Internal testing and run the complete smoke-test checklist on a real Android device.
+3. Upload `mobile/builds/nhongaqui-1.0.0-5.aab` to Internal testing and run the complete smoke-test checklist on a real Android device.
 4. If the developer account is a personal account created after 13 November 2023, run a Closed test with at least 12 opted-in testers continuously for 14 days before applying for production access.
 5. Fill in Privacy policy, Data safety, Ads, App access, Target audience and content, Content rating, Account deletion and any current Play Console declarations.
 6. Confirm PostgreSQL and media-volume backups, external uptime alerts and a successful restore drill.

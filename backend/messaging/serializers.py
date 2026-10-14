@@ -66,7 +66,7 @@ class MessageSerializer(serializers.ModelSerializer):
 class ConversationSerializer(serializers.ModelSerializer):
     product = ProductSummarySerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.filter(status__in=["active", "reserved", "sold"]),
+        queryset=Product.objects.exclude(status=Product.Status.DELETED),
         source="product",
         write_only=True,
     )
@@ -93,6 +93,8 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     def validate_product_id(self, product):
         user = self.context["request"].user
+        if product.status not in [Product.Status.ACTIVE, Product.Status.RESERVED]:
+            raise serializers.ValidationError("Este produto ja nao esta disponivel para novas conversas.")
         if product.seller_id == user.id:
             raise serializers.ValidationError("Nao pode iniciar conversa consigo proprio.")
         if UserBlock.objects.filter(

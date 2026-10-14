@@ -318,7 +318,7 @@ export function ShopPage() {
 export function ProductPage() {
   const { slug = "" } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const queryClient = useQueryClient();
   const [reportOpen, setReportOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -387,6 +387,7 @@ export function ProductPage() {
   const currentFavorite = favorites.data?.find((item) => item.product.id === product.data.id);
   const seller = product.data.seller;
   const isSold = product.data.status === "sold";
+  const isOwner = user?.id === seller.id;
   const galleryImages = product.data.images.slice(0, maxProductImages);
   const selectedImage = galleryImages.find((image) => image.id === selectedImageId) ?? galleryImages[0];
   const selectedImageIndex = selectedImage ? galleryImages.findIndex((image) => image.id === selectedImage.id) : -1;
@@ -485,7 +486,9 @@ export function ProductPage() {
             <Button disabled={isSold} onClick={() => void contactSeller()}><MessageCircle size={18} /> {isSold ? "Produto vendido" : "Contactar"}</Button>
             <Button variant="secondary" onClick={() => void navigator.share?.({ title: product.data?.title, url: location.href })}><Share2 size={18} /> Partilhar</Button>
             <Button variant="ghost" onClick={() => setReportOpen((value) => !value)}><Flag size={18} /> Denunciar</Button>
-            <Button variant="ghost" onClick={() => setReviewOpen((value) => !value)}>Avaliar</Button>
+            {isSold && !isOwner ? (
+              <Button variant="ghost" onClick={() => isAuthenticated ? setReviewOpen((value) => !value) : navigate("/login")}>Avaliar</Button>
+            ) : null}
           </div>
           {contactError ? <p className="mt-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{contactError}</p> : null}
           {reportOpen ? <ReportForm productId={product.data.id} /> : null}
@@ -546,6 +549,7 @@ function ReviewForm({ productId, onDone }: { productId: number; onDone: () => vo
       </Select>
       <Textarea placeholder="Comentario" value={comment} onChange={(event) => setComment(event.target.value)} />
       <Button type="submit" disabled={review.isPending}>Publicar avaliacao</Button>
+      {review.error instanceof Error ? <p className="text-sm font-bold text-red-700">{review.error.message}</p> : null}
     </form>
   );
 }

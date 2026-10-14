@@ -87,6 +87,7 @@ export default function ProductDetailsScreen() {
 
   const item = product.data;
   const owner = user?.id === item.seller.id;
+  const isSold = item.status === "sold";
   const isFavorite = favorites.data?.some((favorite) => favorite.product.id === item.id);
   const images = item.images.length ? item.images : [{ id: 0, image: null }];
   const galleryWidth = Math.max(width - 32, 280);
@@ -143,10 +144,16 @@ export default function ProductDetailsScreen() {
               </View>
             </Pressable>
           </Card>
-          {owner ? <Button title="Editar este anúncio" onPress={() => router.push(("/edit-listing/" + item.slug) as never)} /> : <Button title="Contactar vendedor" icon={<MessageCircle color={colors.white} size={19} />} onPress={() => void contactSeller()} />}
+          {owner ? (
+            <Button title="Editar este anúncio" onPress={() => router.push(("/edit-listing/" + item.slug) as never)} />
+          ) : isSold ? (
+            <Button title="Produto vendido" disabled />
+          ) : (
+            <Button title="Contactar vendedor" icon={<MessageCircle color={colors.white} size={19} />} onPress={() => void contactSeller()} />
+          )}
           <View style={styles.row}>
             <Button title="Partilhar" style={{ flex: 1 }} variant="secondary" icon={<Share2 color={colors.brand} size={17} />} onPress={() => { const url = (process.env.EXPO_PUBLIC_WEB_URL ?? "https://nhongaqui.com") + "/produto/" + item.slug; void Share.share({ message: item.title + " - " + item.price + " MT\n" + url, url }); }} />
-            {!owner ? <Button title="Avaliar" style={{ flex: 1 }} variant="secondary" icon={<Star color={colors.brand} size={17} />} onPress={() => requireAuth(() => setReviewOpen(true))} /> : null}
+            {!owner && isSold ? <Button title="Avaliar" style={{ flex: 1 }} variant="secondary" icon={<Star color={colors.brand} size={17} />} onPress={() => requireAuth(() => setReviewOpen(true))} /> : null}
           </View>
           {!owner ? (
             <View style={styles.row}>
